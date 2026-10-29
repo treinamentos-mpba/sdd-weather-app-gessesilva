@@ -2,6 +2,73 @@
 
 Fonte: `plans/weather-app-plan.md`. Localização do dispositivo foi removida do escopo; não há tarefas para reverse geocoding. Busca por código postal e histórico são condicionais à PoC: se não passarem, T-03 retira-os do MVP e as tarefas correspondentes ficam não aplicáveis.
 
+## Prioridade e tamanho
+
+**Prioridade:** P0 = gate ou requisito do primeiro fluxo utilizável; P1 = capacidade restante necessária antes do release; P2 = capacidade condicional à PoC. **Tamanho:** P = pequeno e focado; M = esforço médio; G = grande ou com incerteza elevada, a acompanhar/refinar durante a execução.
+
+| Tarefa | Prioridade | Tamanho |
+|---|---|---|
+| T-01 | P0 | G |
+| T-02 | P0 | M |
+| T-03 | P0 | M |
+| T-04 | P0 | G |
+| T-05 | P0 | G |
+| T-06 | P0 | P |
+| T-07 | P0 | M |
+| T-08 | P0 | M |
+| T-09 | P0 | P |
+| T-10 | P0 | M |
+| T-11 | P0 | M |
+| T-12 | P0 | M |
+| T-13 | P2 | M |
+| T-14 | P0 | M |
+| T-15 | P0 | M |
+| T-16 | P1 | M |
+| T-17 | P0 | M |
+| T-18 | P2 | M |
+| T-19 | P0 | M |
+| T-20 | P0 | P |
+| T-21 | P0 | P |
+| T-22 | P0 | M |
+| T-23 | P0 | M |
+| T-24 | P0 | P |
+| T-25 | P0 | M |
+| T-26 | P2 | M |
+| T-27 | P0 | G |
+| T-28 | P0 | M |
+| T-29 | P0 | P |
+| T-30 | P0 | P |
+| T-31 | P0 | M |
+| T-32 | P0 | M |
+| T-33 | P0 | M |
+| T-34 | P0 | M |
+| T-35 | P0 | M |
+| T-36 | P1 | M |
+| T-37 | P0 | M |
+| T-38 | P2 | M |
+| T-39 | P0 | M |
+| T-40 | P0 | P |
+| T-41 | P0 | P |
+| T-42 | P0 | P |
+| T-43 | P0 | P |
+| T-44 | P0 | P |
+| T-45 | P2 | P |
+| T-46 | P0 | M |
+| T-47 | P1 | M |
+| T-48 | P1 | G |
+| T-49 | P0 | G |
+| T-50 | P0 | M |
+| T-51 | P0 | P |
+
+## Sequência sugerida em fatias verticais
+
+1. **Gate do provedor:** executar T-01 a T-05. Registra evidência e fecha escopo/contratos antes do código.
+2. **Primeira entrega visível — busca manual → clima atual e cinco dias:** implementar tipos, mapeadores e helpers (T-06 a T-11), serviços de geocoding/forecast/storage (T-12), hooks de busca/clima/favoritos (T-14, T-15, T-17), componentes de busca, estados, clima, previsão, unidade e favoritos (T-19 a T-25), composição (T-27) e testes de contrato, serviços, hooks e UI (T-28 a T-35, T-37, T-39 a T-44), finalizando com T-46. Esta fatia entrega uso visível e persistência básica.
+3. **Resiliência operacional:** refresh, visibilidade e cache stale (T-16), seus testes (T-36), testes E2E de falhas/mobile (T-47), validação de disponibilidade/NFR (T-48 a T-50) e gates finais (T-51).
+4. **Histórico condicional:** se T-01/T-03 aprovarem Archive, executar T-13, T-18, T-26, T-38 e T-45; caso contrário, encerrar sem esses recursos.
+
+**Ajuste de dependência recomendado:** T-27 atualmente pode esperar T-26 quando o histórico for aprovado. Para que uma funcionalidade condicional não bloqueie a primeira entrega, remover essa dependência da composição inicial e integrar `HistoryPanel` na fatia 4, após a PoC.
+
 ## Cobertura por requisito funcional
 
 | Requisito | Tarefas de implementação | Tarefas de teste | Cobertura/observação |
