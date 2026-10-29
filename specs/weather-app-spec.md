@@ -106,17 +106,19 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 
 ## 6. Edge Cases
 
-- Busca vazia ou com menos de dois caracteres: não consultar sugestões antes do limite mínimo.
-- Busca sem correspondência: apresentar mensagem e sugestões de correção; não exibir dados de outra cidade como substituição silenciosa.
+- Campo vazio ou contendo somente espaços: não enviar solicitação de geocoding; manter o campo disponível e pedir que o usuário informe uma cidade. Com menos de dois caracteres, não solicitar sugestões.
+- Cidade inexistente ou geocoding sem resultados: informar que nenhuma cidade foi encontrada, manter a busca editável, oferecer sugestões e não solicitar dados meteorológicos nem substituir a cidade silenciosamente.
 - Cidades homônimas: exigir seleção inequívoca por região e país, quando disponíveis.
+- Caracteres especiais: remover espaços excedentes, aceitar caracteres Unicode e pontuação legítima em nomes de localidades (como acentos, hífens e apóstrofos) e codificar o texto ao enviá-lo ao provedor. Rejeitar ou tratar com segurança caracteres de controle sem quebrar a interface.
 - Código postal ou grafia não suportados pelo provedor: informar ausência de resultados sem falhar a interface.
 - Falha, negação ou timeout de geolocalização: preservar a busca manual; coordenadas não são guardadas.
 - Cidade salva com mais de 30 dias: não reutilizar automaticamente como localização lembrada; solicitar nova localização ou permitir busca manual.
 - Usuário tenta adicionar mais de cinco favoritas: manter as existentes e informar o limite.
 - Armazenamento local indisponível ou apagado: permitir consulta sem persistência e informar que preferências/favoritas podem não ser mantidas.
-- Provedor indisponível, timeout ou cota atingida: mostrar cache válido com data/hora ou, sem cache válido, erro e nova tentativa.
+- Falha de rede, erro HTTP, resposta inválida do provedor ou cota atingida: preservar a cidade selecionada e distinguir falha do serviço de cidade inexistente; mostrar cache válido com data/hora ou, sem cache válido, erro e nova tentativa.
+- Timeout da requisição: ao atingir o limite configurado, encerrar a espera, preservar a cidade selecionada e aplicar o fluxo de cache válido ou erro com nova tentativa. A duração do limite ainda precisa ser definida.
 - Cache com mais de 24 horas: não apresentar como dado atual.
-- Resposta parcial: apresentar cada bloco disponível e marcar previsão ou histórico indisponível separadamente.
+- Resposta parcial: apresentar os blocos e campos recebidos; marcar campos ausentes como indisponíveis, nunca como zero nem com valores inferidos. Se faltar um campo essencial a um bloco, marcar esse bloco como indisponível sem ocultar outros blocos completos.
 - Histórico ou métricas ausentes para uma cidade/região: comunicar indisponibilidade; não inferir nem fabricar valores.
 - Virada de dia, horário de verão ou cidades em fusos diferentes: calcular datas e horários no fuso da cidade selecionada.
 - Conversão de temperatura: aplicar unidade escolhida a todos os blocos e arredondar a uma casa decimal.
@@ -169,3 +171,4 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 5. Quais condições mensuráveis definem “rede normal” para testar o tempo médio de resposta de até três segundos?
 6. A decisão de não persistir dados no servidor também proíbe analytics agregados retidos por até 90 dias? Se permitidos, onde e sob qual operador os eventos serão retidos?
 7. Quais textos, canal de contato e responsável legal devem constar na política de privacidade e na interface de consentimento, conforme revisão jurídica da LGPD?
+8. Qual é a duração máxima de espera de cada requisição antes de ser tratada como timeout?
