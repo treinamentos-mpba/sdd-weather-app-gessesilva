@@ -94,53 +94,52 @@ Os nomes acima são responsabilidades propostas, não arquivos de implementaçã
 Armazenar temperaturas normalizadas em Celsius e converter somente na apresentação. Datas/hora devem manter o offset ou fuso da cidade; não reinterpretar datas locais como UTC.
 
 ```ts
-export type TemperatureUnit = "celsius" | "fahrenheit";
+export type Unit = "celsius" | "fahrenheit";
 
 export interface City {
-  id: string;
-  name: string;
-  region?: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-  timezone: string;
+  id: number; // Identificador da localidade retornado pelo geocoding.
+  name: string; // Nome da cidade retornado pelo geocoding.
+  region?: string; // Estado ou região administrativa, quando disponível.
+  country: string; // Nome do país retornado pelo geocoding.
+  latitude: number; // Latitude da cidade resolvida, não do dispositivo.
+  longitude: number; // Longitude da cidade resolvida, não do dispositivo.
+  timezone: string; // Fuso IANA usado para agrupar datas e horários locais.
 }
 
 export interface CurrentWeather {
-  observedAt: string;
-  conditionCode: number;
-  temperatureC: number;
-  feelsLikeC: number;
-  todayMinC: number;
-  todayMaxC: number;
-  windSpeedKmh: number;
-  relativeHumidityPercent: number;
-  precipitationProbabilityRemainingDayPercent: number | null;
+  observedAt: string; // Horário local da observação, conforme a resposta da API.
+  conditionCode: number; // Código WMO da variável weather_code.
+  temperatureC: number; // temperature_2m, normalizada para graus Celsius.
+  feelsLikeC: number; // apparent_temperature, normalizada para graus Celsius.
+  todayMinC: number; // temperature_2m_min para a data local atual.
+  todayMaxC: number; // temperature_2m_max para a data local atual.
+  windSpeedKmh: number; // wind_speed_10m, normalizada para km/h.
+  relativeHumidityPercent: number; // relative_humidity_2m, em porcentagem.
+  precipitationProbabilityRemainingDayPercent: number | null; // Derivada de precipitation_probability horária; null se indisponível ou sem regra aprovada.
 }
 
-export interface DailyWeather {
-  date: string;
-  conditionCode: number;
-  minC: number;
-  maxC: number;
-  precipitationProbabilityPercent: number | null;
+export interface ForecastDay {
+  date: string; // Data local da série daily.time.
+  conditionCode: number; // Código WMO da variável daily.weather_code.
+  minC: number; // daily.temperature_2m_min, normalizada para Celsius.
+  maxC: number; // daily.temperature_2m_max, normalizada para Celsius.
+  precipitationProbabilityMaxPercent: number | null; // daily.precipitation_probability_max, em porcentagem.
 }
 
-export interface HistoricalDay extends DailyWeather {
-  precipitationObservedMm: number | null;
+export interface HistoricalDay {
+  date: string; // Data local retornada pelo endpoint de arquivo.
+  conditionCode: number; // Código WMO da condição histórica.
+  minC: number; // Temperatura mínima observada, normalizada para Celsius.
+  maxC: number; // Temperatura máxima observada, normalizada para Celsius.
+  precipitationObservedMm: number | null; // Precipitação observada no dia, em milímetros.
 }
 
-export interface WeatherSnapshot {
-  city: City;
-  fetchedAt: string;
-  current: CurrentWeather | null;
-  forecast: DailyWeather[] | null;
-}
-
-export interface WeatherHistory {
-  cityId: string;
-  fetchedAt: string;
-  days: HistoricalDay[];
+export interface WeatherData {
+  city: City; // Cidade resolvida a que os dados pertencem.
+  current: CurrentWeather | null; // Clima atual; null quando esse bloco não veio válido.
+  forecast: ForecastDay[] | null; // Previsão diária; null quando esse bloco não veio válido.
+  fetchedAt: string; // Instante da consulta à API, em ISO 8601 UTC.
+  history?: HistoricalDay[]; // Histórico condicional à PoC, carregado sob demanda.
 }
 
 export type WeatherBlock = "current" | "forecast" | "history";
@@ -175,11 +174,11 @@ export interface StoredValue<T> {
 
 **Contratos e invariantes:**
 
-- `City.latitude`/`longitude` são as coordenadas da cidade resolvida. Coordenadas brutas do dispositivo nunca fazem parte de `City`, `WeatherSnapshot`, armazenamento local ou requisição meteorológica.
+- `City.latitude`/`longitude` são as coordenadas da cidade resolvida. Coordenadas brutas do dispositivo nunca fazem parte de `City`, `WeatherData`, armazenamento local ou requisição meteorológica.
 - Campos que podem faltar por cobertura do provedor são `null` ou levam ao estado indisponível do bloco; nunca converter ausência em zero.
-- `WeatherSnapshot.current` e `forecast` têm estados de UI separados. Um campo faltante não invalida outros campos recebidos; a regra de completude para a métrica de PoC/release considera o bloco uma falha se faltar campo requerido.
-- `WeatherHistory` e suas operações só entram no contrato do MVP após a PoC.
-- O método para calcular a probabilidade de chuva do restante do dia continua pendente de validação do provedor; o modelo usa `null` quando não houver valor calculável/aprovado.
+- `WeatherData.current` e `forecast` têm estados de UI separados. Um campo faltante não invalida outros campos recebidos; a regra de completude para a métrica de PoC/release considera o bloco uma falha se faltar campo requerido.
+- `HistoricalDay` e `WeatherData.history` só entram no contrato do MVP após a PoC.
+- `precipitationProbabilityRemainingDayPercent` não é um campo atual direto da API: depende da série horária `precipitation_probability` e de uma regra de agregação ainda a validar; usar `null` até haver valor aprovado.
 - `StoredValue` inclui versão de schema e timestamp para possibilitar descartar entradas incompatíveis ou expiradas.
 
 ## Data Flow
@@ -199,19 +198,87 @@ export interface StoredValue<T> {
 
 ### Open-Meteo Geocoding
 
-- **Base:** `https://geocoding-api.open-meteo.com/v1/search`
-- **Uso previsto:** busca direta por nome e desambiguação, com `count=5`, idioma pt e formato JSON.
-- **Parâmetros de entrada:** texto normalizado; considerar `name`, `count`, `language` e `format` conforme documentação vigente.
-- **Saída normalizada:** `City[]`, incluindo identificador, nome, região, país, latitude, longitude e timezone quando disponível.
-- **PoC:** testar nomes internacionais, homônimos, alias/acentos e cobertura por região. Busca postal é condicional; não manter no MVP se falhar.
-- **Debounce/limites:** debounce e volume de autocomplete ainda devem ser definidos; não presumir que o limite diário de consultas de clima inclui chamadas de geocoding.
+- **URL de exemplo:** `https://geocoding-api.open-meteo.com/v1/search?name=S%C3%A3o+Paulo&count=5&language=pt&format=json`
+- **Parâmetros relevantes:** `name` é o texto da busca; `count=5` limita sugestões; `language=pt` solicita nomes em português quando disponíveis; `format=json` seleciona JSON. Só chamar após dois caracteres e com busca não vazia. Código postal permanece condicional à PoC.
+- **Resposta resumida (valores ilustrativos):**
+
+```json
+{
+  "results": [
+    {
+      "id": 1234567,
+      "name": "São Paulo",
+      "latitude": -23.5505,
+      "longitude": -46.6333,
+      "elevation": 760,
+      "feature_code": "PPLA",
+      "country_code": "BR",
+      "admin1": "São Paulo",
+      "timezone": "America/Sao_Paulo",
+      "country": "Brasil"
+    }
+  ],
+  "generationtime_ms": 0.1
+}
+```
+
+- **Mapeamento para `City`:** `id` → `id`; `name` → `name`; `admin1` → `region`; `country` → `country`; `latitude`/`longitude` → coordenadas da cidade; `timezone` → `timezone`. Se `timezone` não vier no resultado, usar o valor retornado pelo endpoint Forecast. `country_code`, `elevation` e `feature_code` podem ser descartados se a UI não os exigir.
+- **PoC:** testar nomes internacionais, homônimos, aliases/acentos e cobertura por região. Tratar resultado sem `results` ou com lista vazia como cidade não encontrada. Debounce e volume de autocomplete ainda precisam ser definidos; não presumir que o limite de consultas meteorológicas inclua geocoding.
 
 ### Open-Meteo Forecast
 
-- **Base:** `https://api.open-meteo.com/v1/forecast`
-- **Uso previsto:** um pedido por cidade selecionada para dados atuais e previsão diária de cinco dias; obter dados horários necessários à probabilidade de chuva somente se o provedor oferecer definição compatível.
-- **Parâmetros conceituais:** `latitude`, `longitude` da cidade resolvida, `timezone=auto`, `forecast_days=5`, variáveis atuais para temperatura, sensação térmica, condição, vento e umidade, variáveis diárias para condição, máxima/mínima e probabilidade de chuva, e variáveis horárias de precipitação quando necessárias.
-- **Mapeamento:** codificar as variáveis exatas após a PoC e conferir unidades, disponibilidade e semântica dos timestamps. Usar código WMO para mapear condições por `weatherCodes.ts`.
+- **URL de exemplo:** `https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=precipitation_probability&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm&timezone=auto&forecast_days=5`
+- **Parâmetros relevantes:** `latitude`/`longitude` são os da cidade resolvida; `current` pede condições atuais; `daily` pede séries por dia; `hourly=precipitation_probability` fornece a série horária necessária para avaliar chuva restante no dia; `timezone=auto` usa o fuso das coordenadas e o devolve na resposta; `forecast_days=5` solicita hoje e os quatro dias seguintes; `temperature_unit=celsius`, `wind_speed_unit=kmh` e `precipitation_unit=mm` fixam as unidades recebidas.
+- **Resposta resumida (valores ilustrativos; arrays diários usam o mesmo índice para cada data):**
+
+```json
+{
+  "latitude": -23.55,
+  "longitude": -46.625,
+  "timezone": "America/Sao_Paulo",
+  "utc_offset_seconds": -10800,
+  "current_units": {
+    "time": "iso8601",
+    "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "apparent_temperature": "°C",
+    "weather_code": "wmo code",
+    "wind_speed_10m": "km/h"
+  },
+  "current": {
+    "time": "2026-10-29T14:00",
+    "temperature_2m": 24.6,
+    "relative_humidity_2m": 62,
+    "apparent_temperature": 25.1,
+    "weather_code": 2,
+    "wind_speed_10m": 12.4
+  },
+  "hourly": {
+    "time": ["2026-10-29T14:00", "2026-10-29T15:00"],
+    "precipitation_probability": [20, 35]
+  },
+  "daily_units": {
+    "time": "iso8601",
+    "weather_code": "wmo code",
+    "temperature_2m_max": "°C",
+    "temperature_2m_min": "°C",
+    "precipitation_probability_max": "%"
+  },
+  "daily": {
+    "time": ["2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"],
+    "weather_code": [2, 61, 3, 1, 2],
+    "temperature_2m_max": [27.2, 24.5, 25.1, 26.0, 27.0],
+    "temperature_2m_min": [18.4, 17.9, 18.1, 18.5, 19.0],
+    "precipitation_probability_max": [35, 70, 40, 10, 15]
+  }
+}
+```
+
+- **Mapeamento para `City`:** coordenadas do request identificam a cidade; `timezone` da resposta é a fonte autoritativa para `City.timezone` se o geocoding não a retornar.
+- **Mapeamento para `CurrentWeather`:** `current.time` → `observedAt`; `weather_code` → `conditionCode`; `temperature_2m` → `temperatureC`; `apparent_temperature` → `feelsLikeC`; `wind_speed_10m` → `windSpeedKmh`; `relative_humidity_2m` → `relativeHumidityPercent`. As temperaturas mínima/máxima do dia vêm dos elementos de `daily.temperature_2m_min/max` cuja `daily.time` coincide com a data local atual.
+- **Mapeamento para `ForecastDay`:** percorrer os arrays `daily` pelo índice de `daily.time`: `time` → `date`; `weather_code` → `conditionCode`; `temperature_2m_min/max` → `minC`/`maxC`; `precipitation_probability_max` → `precipitationProbabilityMaxPercent`.
+- **Mapeamento para `WeatherData`:** associar `City`, o bloco `CurrentWeather`, os cinco `ForecastDay` e o instante local da consulta em `fetchedAt` (normalizado pelo cliente para ISO 8601 UTC). Se um bloco for inválido ou ausente, representá-lo como `null` e manter estado independente para os demais.
+- **Probabilidade restante do dia:** `daily.precipitation_probability_max` representa o máximo diário e não deve ser mapeado diretamente como probabilidade restante. O valor de `CurrentWeather.precipitationProbabilityRemainingDayPercent` depende da série `hourly.precipitation_probability` a partir do horário atual até o fim do dia local; a regra de agregação continua pendente na spec. Até sua aprovação, mapear como `null`.
 - **Não enviar:** coordenadas precisas obtidas diretamente do dispositivo; enviar somente latitude/longitude da cidade resolvida.
 
 ### Open-Meteo Archive (condicional)
@@ -240,10 +307,10 @@ export interface WeatherPageState {
   suggestions: AsyncBlock<City[]>;
   selectedCity: City | null;
   current: AsyncBlock<CurrentWeather>;
-  forecast: AsyncBlock<DailyWeather[]>;
-  history: AsyncBlock<WeatherHistory>;
+  forecast: AsyncBlock<ForecastDay[]>;
+  history: AsyncBlock<HistoricalDay[]>;
   activeView: "forecast" | "history";
-  unit: TemperatureUnit;
+  unit: Unit;
   favorites: FavoriteCity[];
   rememberedCity: City | null;
 }
