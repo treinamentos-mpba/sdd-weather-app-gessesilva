@@ -44,7 +44,6 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - **AC-01.4 (FR-01):** Given que a prova de conceito confirmou busca por código postal, When um código postal suportado é enviado, Then a cidade correspondente aparece nos resultados. Given que a prova de conceito não confirmou esse suporte, When o escopo do MVP é aprovado, Then a busca por código postal é removida de FR-01 e este critério é excluído antes da implementação. Given uma resposta de teste com alias acentuado e não acentuado, When qualquer alias suportado é pesquisado, Then a mesma cidade aparece.
 - **AC-01.5 (FR-02):** Given uma cidade selecionada e uma resposta de clima atual com todos os campos requeridos, When os dados são carregados, Then a tela mostra temperatura, condição, sensação térmica, máxima, mínima, vento, umidade, probabilidade de chuva e horário da observação no fuso da cidade.
 - **AC-01.6 (FR-02):** Given uma cidade com fuso horário conhecido e horário de teste fixo, When o clima atual é exibido, Then o período de probabilidade de chuva termina no fim do dia local da cidade.
-- **AC-01.7 (FR-12):** Given um navegador sem sessão autenticada, When o usuário pesquisa uma cidade e abre o clima atual, Then a consulta é concluída sem solicitar login ou criação de conta.
 
 ### US-02 — Planejamento de viagem
 
@@ -87,6 +86,20 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 
 - **AC-07.1 (FR-11):** Given qualquer estado do app, When o usuário navega, pesquisa ou consulta dados, Then nenhum evento de analytics é coletado, enviado ou armazenado.
 - **AC-07.2 (FR-12):** Given um navegador sem conta, When o usuário consulta clima atual, previsão e recursos incluídos no MVP, Then as consultas disponíveis podem ser concluídas sem autenticação.
+
+### Matriz de rastreabilidade
+
+Os NFR-01 a NFR-03 (responsividade, compatibilidade e acessibilidade) são transversais e aplicam-se a todas as histórias. Os demais NFRs listados abaixo são específicos ao fluxo.
+
+| User Story | Requisitos funcionais | Acceptance Criteria | NFRs específicos relacionados |
+|---|---|---|---|
+| US-01 — Consulta cotidiana | FR-01, FR-02 | AC-01.1 a AC-01.6 | NFR-04, NFR-06, NFR-09, NFR-10, NFR-12 |
+| US-02 — Planejamento de viagem | FR-01, FR-03, FR-07 | AC-02.1 a AC-02.4 | NFR-04, NFR-06, NFR-09, NFR-10, NFR-11, NFR-12, NFR-13 |
+| US-03 — Planejamento de atividades | FR-03, FR-04 (condicional à prova de conceito) | AC-03.1 a AC-03.3 | NFR-04, NFR-05, NFR-06, NFR-07, NFR-09, NFR-10, NFR-11, NFR-12, NFR-13 |
+| US-04 — Preferência de temperatura | FR-05 | AC-04.1 a AC-04.3 | NFR-09, NFR-13 |
+| US-05 — Consulta por localização | FR-06 | AC-05.1 a AC-05.5 | NFR-08, NFR-13 |
+| US-06 — Consulta resiliente | FR-08, FR-09, FR-10, FR-13 | AC-06.1 a AC-06.7 | NFR-04, NFR-05, NFR-06, NFR-07, NFR-12, NFR-13 |
+| US-07 — Privacidade e acesso | FR-11, FR-12 | AC-07.1 a AC-07.2 | NFR-08, NFR-13 |
 
 ## 5. Non-Functional Requirements
 
