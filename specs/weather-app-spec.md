@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-O Weather App é um site responsivo para consulta meteorológica, com lançamento inicial no Brasil e busca de cidades em cobertura global. Seu público principal é o público geral. O produto permite consultar clima atual, previsão diária para hoje e os quatro dias seguintes, histórico diário dos sete dias anteriores, alternar unidades de temperatura, salvar cidades favoritas e, mediante ação explícita e consentimento, localizar a cidade atual.
+O Weather App é um site responsivo para consulta meteorológica, com lançamento inicial no Brasil e busca de cidades em cobertura global. Seu público principal é o público geral. O produto permite consultar clima atual e previsão diária para hoje e os quatro dias seguintes. O histórico diário dos sete dias anteriores e a busca por código postal só entram no MVP se aprovados pela prova de conceito do Open-Meteo. O usuário também pode alternar unidades, salvar até cinco cidades favoritas e solicitar localização atual.
 
 A interface do lançamento será em pt-BR. Não haverá autenticação nem persistência de dados do produto no servidor. Open-Meteo foi escolhido como fonte de dados, sem API key. Antes da implementação, uma prova de conceito deverá validar todas as capacidades necessárias, cobertura, termos e limites. Se não houver suporte suficiente a busca por código postal ou histórico de sete dias, esses recursos serão removidos do MVP.
 
@@ -10,18 +10,19 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 
 ## 2. Functional Requirements
 
-- **FR-01 — Buscar cidades:** aceitar nome de cidade, estado/região e país. Busca por código postal só faz parte do MVP se a prova de conceito confirmar suporte adequado no Open-Meteo; caso contrário, fica fora do escopo. Mostrar até cinco sugestões após a digitação de dois caracteres. Diferenciar localidades homônimas por cidade, estado/região e país. Tolerar acentos e variações de grafia quando suportado pela fonte.
-- **FR-02 — Consultar clima atual:** para uma cidade selecionada, apresentar temperatura, condição, sensação térmica, máxima e mínima do dia, velocidade do vento, umidade, probabilidade de chuva para o restante do dia e horário da observação no fuso local da cidade.
+- **FR-01 — Buscar cidades:** aceitar nome de cidade, estado/região e país. Busca por código postal só faz parte do MVP se a prova de conceito confirmar suporte adequado no Open-Meteo; caso contrário, fica fora do escopo antes da implementação. Remover espaços excedentes, não enviar campo vazio e mostrar até cinco sugestões após dois caracteres. Diferenciar localidades homônimas por cidade, estado/região e país. Tolerar acentos e variações de grafia quando suportado pela fonte.
+- **FR-02 — Consultar clima atual:** para uma cidade selecionada, apresentar temperatura, condição, sensação térmica, máxima e mínima do dia, velocidade do vento em km/h, umidade em porcentagem, probabilidade de chuva para o restante do dia em porcentagem e horário da observação no fuso local da cidade. O método para resumir probabilidades horárias em um valor para o restante do dia permanece sujeito à validação do provedor.
 - **FR-03 — Consultar previsão:** apresentar uma previsão diária para hoje e os quatro dias seguintes, no fuso local da cidade, com condição, máxima, mínima e probabilidade de chuva.
 - **FR-04 — Consultar histórico (condicional à prova de conceito):** se a prova de conceito confirmar disponibilidade suficiente dos sete dias anteriores e dos campos requeridos no Open-Meteo, apresentar o histórico diário em uma aba separada com condição, máxima, mínima e precipitação observada, carregando os dados somente quando a aba for aberta. Se o suporte for insuficiente, remover este requisito e seus critérios relacionados do MVP antes da implementação, sem substituí-lo automaticamente por outro provedor.
 - **FR-05 — Alternar unidade de temperatura:** oferecer Celsius e Fahrenheit, usando Celsius como padrão. Aplicar a escolha ao clima atual, à previsão e ao histórico; exibir uma casa decimal e guardar a preferência localmente no navegador.
-- **FR-06 — Consultar localização atual:** oferecer a ação “Usar minha localização” e só solicitar a permissão após essa ação. Transmitir as coordenadas precisas do dispositivo somente ao serviço de geolocalização para resolver a cidade, sem armazená-las. Consultas meteorológicas devem usar as coordenadas associadas à cidade resolvida, nunca as coordenadas precisas originais do dispositivo. Com consentimento para lembrar a localização, salvar apenas a cidade resolvida no navegador por até 30 dias. Permitir apagar a cidade salva. Se a permissão for negada ou a localização falhar, manter a busca manual disponível.
+- **FR-06 — Consultar localização atual:** oferecer a ação “Usar minha localização” e só solicitar a permissão após essa ação. Transmitir as coordenadas precisas do dispositivo somente ao serviço de geolocalização para resolver a cidade, sem armazená-las. Consultas meteorológicas devem usar as coordenadas associadas à cidade resolvida, nunca as coordenadas precisas originais do dispositivo. Com consentimento separado para lembrar a localização, salvar apenas a cidade resolvida no navegador por até 30 dias. Permitir apagar a cidade salva. Se a permissão for negada ou a localização falhar, manter a busca manual disponível.
 - **FR-07 — Gerenciar cidades favoritas:** permitir salvar até cinco cidades no navegador, sem conta, e remover cada favorita independentemente da cidade salva por localização.
-- **FR-08 — Atualizar dados meteorológicos:** atualizar os dados a cada 30 minutos enquanto a página estiver visível, pausar a atualização automática quando a aba estiver oculta e oferecer atualização manual.
+- **FR-08 — Atualizar dados meteorológicos:** atualizar os dados a cada 30 minutos enquanto a página estiver visível, pausar a atualização automática quando a aba estiver oculta e oferecer atualização manual. Ao voltar a ficar visível, atualizar se os dados exibidos tiverem 30 minutos ou mais.
 - **FR-09 — Tratar busca sem resultados:** informar quando nenhuma cidade corresponder à consulta e oferecer sugestões para corrigir o termo ou procurar localidades próximas.
-- **FR-10 — Tratar indisponibilidade e cota:** usar dados em cache por no máximo 24 horas. Ao exibir cache, informar que os dados podem estar desatualizados e mostrar a data/hora de obtenção. Sem cache válido, informar o erro e permitir nova tentativa. Aplicar o mesmo comportamento quando o serviço atingir sua cota.
-- **FR-11 — Gerenciar consentimento de analytics:** solicitar consentimento explícito antes de coletar analytics; permitir revogar a autorização nas configurações de privacidade. Recusar ou revogar analytics não pode limitar as funcionalidades do produto. Os eventos previstos são agregados e não incluem nomes de cidades nem localização precisa; a persistência e retenção estão sujeitas à decisão em aberto sobre armazenamento no servidor.
+- **FR-10 — Tratar indisponibilidade e cota:** manter cache por cidade e bloco somente no navegador, por no máximo 24 horas. Ao exibir cache, informar que os dados podem estar desatualizados e mostrar a data/hora de obtenção. Sem cache válido, informar o erro e permitir nova tentativa. Aplicar o mesmo comportamento quando o serviço atingir sua cota; não persistir cache meteorológico no servidor.
+- **FR-11 — Manter analytics desativado:** não coletar, enviar nem armazenar eventos de analytics no MVP. A ativação futura requer mudança de escopo e revisão de privacidade.
 - **FR-12 — Usar sem conta:** permitir consultar clima, previsão e histórico sem autenticação ou criação de conta.
+- **FR-13 — Indicar carregamento:** ao iniciar uma busca ou carregar um bloco meteorológico, apresentar estado de carregamento identificável até sucesso, erro ou cancelamento. O carregamento de um bloco não deve ocultar os demais blocos já disponíveis.
 
 ## 3. User Stories
 
@@ -30,8 +31,8 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - **US-03 — Planejamento de atividades:** Como Lúcia, planejadora de atividades ao ar livre, quero consultar a previsão e, se aprovada pela prova de conceito, o histórico de temperatura e chuva para escolher quando realizar uma atividade. **Requisitos relacionados:** FR-03, FR-04. A história deve ser removida se o histórico sair do escopo do MVP.
 - **US-04 — Preferência de temperatura:** Como Marina, usuária cotidiana, quero alternar entre Celsius e Fahrenheit para entender as temperaturas na unidade que prefiro. **Requisito relacionado:** FR-05.
 - **US-05 — Consulta por localização:** Como Marina, usuária cotidiana, quero consultar o clima da minha localização quando eu solicitar e continuar podendo pesquisar manualmente para encontrar informações sem perder o controle da minha localização. **Requisito relacionado:** FR-06.
-- **US-06 — Consulta resiliente:** Como Lúcia, planejadora de atividades ao ar livre, quero atualizar os dados e receber uma indicação clara quando houver cache ou falha para não confundir informação antiga com a condição atual. **Requisitos relacionados:** FR-08, FR-09, FR-10.
-- **US-07 — Privacidade e acesso:** Como Rafael, viajante, quero usar o app sem criar uma conta e controlar minha autorização para analytics para consultar cidades com praticidade e decidir sobre o uso dos meus dados. **Requisitos relacionados:** FR-11, FR-12.
+- **US-06 — Consulta resiliente:** Como Lúcia, planejadora de atividades ao ar livre, quero acompanhar o carregamento e receber indicação clara de cache ou falha para não confundir informação antiga com a condição atual. **Requisitos relacionados:** FR-08, FR-09, FR-10, FR-13.
+- **US-07 — Privacidade e acesso:** Como Rafael, viajante, quero consultar o app sem criar conta nem ter meu uso rastreado para acessar informações meteorológicas preservando minha privacidade. **Requisitos relacionados:** FR-11, FR-12.
 
 ## 4. Acceptance Criteria
 
@@ -67,42 +68,41 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 ### US-05 — Consulta por localização
 
 - **AC-05.1 (FR-06):** Given que o usuário ainda não acionou “Usar minha localização”, When a página é aberta, Then o navegador não recebe solicitação de permissão de geolocalização.
-- **AC-05.2 (FR-06):** Given que o usuário aciona “Usar minha localização” e concede permissão, When a cidade é resolvida e os dados meteorológicos são solicitados, Then as coordenadas precisas do dispositivo são transmitidas somente ao serviço de geolocalização e não são armazenadas; a consulta meteorológica usa as coordenadas associadas à cidade resolvida, não as coordenadas precisas do dispositivo.
+- **AC-05.2 (FR-06):** Given que o usuário aciona “Usar minha localização” e concede permissão, When a cidade é resolvida e os dados meteorológicos são solicitados, Then as coordenadas precisas do dispositivo são transmitidas somente ao serviço de geolocalização, não são armazenadas nem enviadas ao provedor meteorológico; a consulta meteorológica usa as coordenadas associadas à cidade resolvida.
 - **AC-05.3 (FR-06):** Given que a permissão é negada ou a geolocalização falha, When o fluxo termina, Then a busca manual continua habilitada e nenhuma consulta fica bloqueada.
 - **AC-05.4 (FR-06):** Given consentimento para lembrar a localização, When a cidade é resolvida, Then somente a cidade é salva localmente; Given que passaram 30 dias da gravação, When o app é aberto, Then a cidade salva não é reutilizada como localização lembrada.
 - **AC-05.5 (FR-06):** Given cidade salva e favoritas no navegador, When o usuário apaga a cidade salva, Then favoritas permanecem; When remove uma favorita, Then a cidade salva permanece.
 
 ### US-06 — Consulta resiliente
 
-- **AC-06.1 (FR-08):** Given uma página visível e dados carregados, When passam 30 minutos, Then uma atualização automática é iniciada; Given a aba oculta, When passam 30 minutos, Then nenhuma atualização automática é iniciada; When o usuário solicita atualização manual, Then uma nova atualização é iniciada.
+- **AC-06.1 (FR-08):** Given uma página visível e dados carregados há 30 minutos ou mais, When o intervalo vence, Then uma atualização automática é iniciada; Given a aba oculta, When passam 30 minutos, Then nenhuma atualização automática é iniciada; Given dados com 30 minutos ou mais e a aba oculta, When ela volta a ficar visível, Then uma atualização é iniciada; When o usuário solicita atualização manual, Then uma nova atualização é iniciada.
 - **AC-06.2 (FR-09):** Given uma busca sem correspondências na resposta de teste, When a busca termina, Then a interface exibe mensagem de ausência de resultados e sugestões de correção ou localidades próximas.
-- **AC-06.3 (FR-10):** Given falha ou cota atingida e cache com até 24 horas, When a resposta do provedor falha, Then o cache é exibido com aviso de desatualização e seu horário de obtenção.
+- **AC-06.3 (FR-10):** Given falha ou cota atingida e cache local no navegador com até 24 horas, When a resposta do provedor falha, Then o cache é exibido com aviso de desatualização e seu horário de obtenção, sem leitura de cache no servidor.
 - **AC-06.4 (FR-10):** Given cache com mais de 24 horas ou cache inexistente, When o provedor falha, Then os dados não são apresentados como atuais e a interface exibe erro com ação de nova tentativa.
 - **AC-06.5 (FR-10):** Given respostas de teste em que apenas alguns blocos estão disponíveis, When a tela é exibida, Then cada bloco indisponível é identificado sem ocultar os blocos carregados com sucesso.
+- **AC-06.6 (FR-10):** Given uma resposta de teste com um ou mais campos ausentes, When o bloco é exibido, Then cada campo ausente é identificado como indisponível, nunca substituído por zero ou por valor inferido, e os demais campos recebidos permanecem visíveis.
+- **AC-06.7 (FR-13):** Given uma busca ou carregamento de bloco iniciado e ainda pendente, When a interface é renderizada, Then apresenta um estado de carregamento identificável para a operação; Given a operação termina com sucesso, erro ou cancelamento, When o resultado é processado, Then o indicador de carregamento correspondente é removido sem ocultar outros blocos já disponíveis.
 
 ### US-07 — Privacidade e acesso
 
-- **AC-07.1 (FR-11):** Given que o consentimento de analytics ainda não foi concedido, When o usuário navega ou consulta dados meteorológicos, Then nenhum evento de analytics é enviado.
-- **AC-07.2 (FR-11):** Given consentimento negado ou revogado, When o usuário pesquisa uma cidade e consulta os dados, Then nenhuma funcionalidade meteorológica é bloqueada e nenhum evento posterior é enviado.
-- **AC-07.3 (FR-11):** Given consentimento concedido e uma ação instrumentada, When o evento é preparado para envio, Then o payload não contém nome de cidade nem coordenadas precisas.
-- **AC-07.4 (FR-12):** Given um navegador sem conta, When o usuário consulta clima atual, previsão e histórico, Then todas as consultas disponíveis podem ser concluídas sem autenticação.
-- **AC-07.5 (FR-11):** Given a política de persistência e retenção de analytics ainda não foi decidida, When a coleta é implementada, Then eventos não são persistidos ou enviados a um serviço de analytics até a decisão ser registrada.
+- **AC-07.1 (FR-11):** Given qualquer estado do app, When o usuário navega, pesquisa ou consulta dados, Then nenhum evento de analytics é coletado, enviado ou armazenado.
+- **AC-07.2 (FR-12):** Given um navegador sem conta, When o usuário consulta clima atual, previsão e recursos incluídos no MVP, Then as consultas disponíveis podem ser concluídas sem autenticação.
 
 ## 5. Non-Functional Requirements
 
 - **NFR-01 — Responsividade:** suportar celular a partir de 375 px de largura, tablets e desktops sem rolagem horizontal na largura mínima definida.
 - **NFR-02 — Compatibilidade:** suportar as duas versões principais mais recentes de Chrome, Edge, Safari e Firefox.
 - **NFR-03 — Acessibilidade:** atender à WCAG 2.2 nível AA.
-- **NFR-04 — Desempenho:** o tempo médio entre selecionar uma cidade e exibir o clima deve ser de até três segundos em condições normais de rede. A definição operacional de “rede normal” permanece em aberto.
-- **NFR-05 — Disponibilidade:** o site deve estar acessível pelo menos 99% do tempo em cada mês. A métrica é interna e mede o app, não exige SLA contratual do provedor.
-- **NFR-06 — Sucesso dos dados:** medir separadamente clima atual, previsão e histórico, com sucesso mínimo inicial de 90% por bloco sobre consultas válidas para cidades encontradas. A métrica principal considera sucesso quando o clima atual carrega.
+- **NFR-04 — Desempenho:** o tempo médio entre a seleção de uma cidade e a renderização do bloco de clima atual deve ser de até três segundos. A medição depende de um perfil de rede e de um protocolo de teste ainda a definir.
+- **NFR-05 — Disponibilidade:** pelo menos 99% das verificações sintéticas mensais do endereço de produção devem carregar com sucesso o shell da aplicação. Essa métrica mede o site e não garante disponibilidade do provedor meteorológico.
+- **NFR-06 — Sucesso dos dados:** na prova de conceito e na validação de release, avaliar separadamente clima atual, previsão e histórico em consultas válidas para cidades encontradas. Cada bloco deve atingir ao menos 90% de respostas com todos os campos requeridos; respostas parciais contam como falha para essa métrica, mesmo que os campos disponíveis sejam apresentados. Não coletar telemetria de usuários para calcular essas taxas.
 - **NFR-07 — Atualidade:** durante uso ativo, os dados são atualizados a cada 30 minutos. Cache de até 24 horas só pode ser apresentado com aviso e horário da última obtenção.
-- **NFR-08 — Privacidade e conformidade:** atender à LGPD. Coordenadas precisas do dispositivo podem ser transmitidas temporariamente apenas ao serviço de geolocalização para resolver a cidade e não podem ser armazenadas pelo app. O provedor meteorológico recebe somente as coordenadas associadas à cidade resolvida. Analytics deve ser agregado, não incluir nome de cidade nem localização precisa e ter retenção máxima de 90 dias, condicionado à resolução da questão de persistência no servidor. A política de privacidade deve estar publicada no lançamento.
+- **NFR-08 — Privacidade e conformidade:** atender à LGPD. Coordenadas precisas do dispositivo podem ser transmitidas temporariamente apenas ao serviço de geolocalização para resolver a cidade e não podem ser armazenadas pelo app. O provedor meteorológico recebe somente as coordenadas associadas à cidade resolvida. Analytics fica desativado no MVP: nenhum evento de uso pode ser coletado, enviado ou armazenado. Publicar política de privacidade no lançamento.
 - **NFR-09 — Idioma e formatos:** interface em pt-BR no lançamento, datas e horários em formatos brasileiros, relógio de 24 horas e unidades métricas para vento e precipitação. A estrutura deve permitir inclusão futura de idiomas.
 - **NFR-10 — Uso comercial e atribuição:** o provedor precisa permitir o uso comercial pretendido; atribuição deve ser exibida quando exigida pelos termos do serviço.
 - **NFR-11 — Orçamento:** considerar inicialmente até R$ 100 por mês para dados. Qualquer contratação acima desse teto exige aprovação prévia. Busca por código postal e histórico só permanecem no MVP se a prova de conceito confirmar suporte adequado do Open-Meteo; não contratar automaticamente outro provedor pago para mantê-los.
-- **NFR-12 — Escala inicial:** considerar até mil consultas por dia no lançamento.
-- **NFR-13 — Persistência e autenticação:** não exigir conta e não persistir dados do app no servidor. Preferência de unidade, favoritos e cidade resolvida podem ser armazenados localmente no navegador. A retenção de analytics precisa de decisão própria antes de implementação.
+- **NFR-12 — Escala inicial:** suportar até mil consultas meteorológicas iniciadas por usuários por dia; chamadas de autocomplete devem ser consideradas separadamente no dimensionamento do provedor.
+- **NFR-13 — Persistência e autenticação:** não exigir conta nem persistir dados do produto no servidor. Preferência de unidade, favoritos, cidade resolvida e cache de até 24 horas podem ser armazenados localmente no navegador. Não implementar analytics no MVP.
 
 ## 6. Edge Cases
 
@@ -122,7 +122,7 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - Histórico ou métricas ausentes para uma cidade/região: comunicar indisponibilidade; não inferir nem fabricar valores.
 - Virada de dia, horário de verão ou cidades em fusos diferentes: calcular datas e horários no fuso da cidade selecionada.
 - Conversão de temperatura: aplicar unidade escolhida a todos os blocos e arredondar a uma casa decimal.
-- Consentimento de analytics negado ou revogado: não coletar eventos e manter todas as funções meteorológicas disponíveis.
+- Analytics desativado no MVP: não coletar, enviar ou armazenar eventos de uso; as funções meteorológicas operam sem consentimento de analytics.
 - Dados de provedor incompatíveis com termos comerciais ou requisitos de privacidade: impedir a contratação até validação.
 
 ## 7. Assumptions
@@ -134,7 +134,7 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - A meta de 99% mede disponibilidade do site, enquanto falhas do provedor são refletidas nas métricas de sucesso dos blocos.
 - Dados persistidos localmente podem ser apagados quando o usuário limpa o armazenamento do navegador e não são sincronizados entre dispositivos.
 - Se a prova de conceito do Open-Meteo não confirmar busca postal ou histórico suficiente, esses recursos serão removidos do MVP; não haverá substituição automática por provedor pago. Se outra capacidade essencial falhar, a implementação aguarda decisão de escopo.
-- Analytics com retenção de 90 dias só será implementado após esclarecer se essa persistência é compatível com a decisão de não armazenar dados no servidor.
+- Analytics permanece desativado no MVP; sua ativação futura exige nova decisão de escopo e revisão de privacidade.
 
 ## 8. Risks
 
@@ -149,14 +149,14 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 | Desempenho ou acessibilidade não atender usuários móveis. | Média | Alto: degrada uso e pode excluir pessoas com deficiência. | Testar a partir de 375 px, validar WCAG 2.2 AA e medir desempenho em condições de rede documentadas. |
 | Meta de sucesso ocultar falha em blocos secundários. | Média | Alto: clima atual pode carregar enquanto previsão ou histórico falha. | Acompanhar métricas separadas para cada bloco, além da disponibilidade mensal do site. |
 | Custo do histórico ultrapassar R$ 100/mês. | Alta | Alto: pode exigir aprovação e atrasar a contratação. | Comparar provedores antes da implementação e solicitar aprovação antes de ultrapassar o teto. |
-| Recusa de localização ou analytics reduzir conveniência ou telemetria. | Média | Médio: menor personalização e menos dados de produto. | Permitir busca manual, consentimento granular e revogação sem bloquear funções meteorológicas. |
-| “Sem persistência no servidor” conflitar com retenção de analytics. | Média | Alto: decisão arquitetural e requisito de privacidade incompatíveis. | Resolver a política de armazenamento antes de implementar analytics; manter coleta desabilitada até a decisão. |
+| Analytics desativado limitar a compreensão de uso e de falhas em produção. | Média | Médio: menos evidência sobre dificuldades reais dos usuários. | Usar verificações sintéticas de disponibilidade, testes de release e feedback voluntário sem registrar eventos de uso. |
 
 ## 9. Out of Scope
 
 - Alertas de clima severo e notificações push.
 - Contas, autenticação e sincronização de favoritos entre dispositivos.
 - Persistência no servidor de cidades, preferências ou dados do app.
+- Coleta de analytics ou telemetria de comportamento de usuários no MVP.
 - Histórico meteorológico anterior aos sete dias definidos.
 - Busca por código postal e histórico de sete dias caso a prova de conceito não confirme suporte adequado do Open-Meteo.
 - Interface em idiomas além de pt-BR no lançamento, embora a arquitetura deva permitir internacionalização futura.
@@ -170,6 +170,7 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 3. Se o provedor escolhido ou uma alternativa ultrapassar R$ 100 por mês, qual valor poderá ser aprovado? A contratação acima do teto requer aprovação prévia.
 4. Se o histórico passar pela prova de conceito, como o Open-Meteo define os dados históricos diários e a probabilidade de chuva para o restante do dia, especialmente em localidades com cobertura parcial?
 5. Quais condições mensuráveis definem “rede normal” para testar o tempo médio de resposta de até três segundos?
-6. A decisão de não persistir dados no servidor também proíbe analytics agregados retidos por até 90 dias? Se permitidos, onde e sob qual operador os eventos serão retidos?
+6. Como as taxas de sucesso dos blocos serão validadas em uma amostra representativa de regiões sem coletar telemetria de usuários? Qual conjunto de cidades e volume de consultas compõem a prova de conceito?
 7. Quais textos, canal de contato e responsável legal devem constar na política de privacidade e na interface de consentimento, conforme revisão jurídica da LGPD?
 8. Qual é a duração máxima de espera de cada requisição antes de ser tratada como timeout?
+9. Qual intervalo de debounce deve ser usado na busca para equilibrar responsividade e limites de chamadas do Open-Meteo?
