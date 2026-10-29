@@ -37,53 +37,56 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 
 ### US-01 — Consulta cotidiana
 
-- **AC-01.1 (FR-01):** Dada uma consulta com menos de dois caracteres, o sistema não solicita sugestões. Ao atingir dois caracteres, apresenta no máximo cinco resultados compatíveis.
-- **AC-01.2 (FR-01):** Quando houver cidades homônimas, cada resultado apresenta cidade e estado/região e país, quando disponíveis, para permitir desambiguação.
-- **AC-01.3 (FR-01):** Uma cidade pode ser pesquisada por nome, região, país ou código postal quando a fonte oferecer suporte; consultas com variação de acento devem ser tratadas conforme a capacidade da fonte.
-- **AC-01.4 (FR-02):** Ao selecionar uma cidade com dados disponíveis, a tela apresenta todos os campos definidos para o clima atual e o horário da observação no fuso da cidade.
-- **AC-01.5 (FR-02):** A probabilidade de chuva exibida para o clima atual corresponde ao restante do dia no fuso local da cidade.
-- **AC-01.6 (FR-12):** Uma pessoa sem conta consegue pesquisar e consultar o clima atual.
+- **AC-01.1 (FR-01):** Given que o campo de busca contém menos de dois caracteres, When o usuário digita, Then nenhuma solicitação de sugestões é enviada.
+- **AC-01.2 (FR-01):** Given que a busca contém pelo menos dois caracteres e a resposta de teste contém mais de cinco correspondências, When as sugestões são exibidas, Then a lista contém no máximo cinco resultados.
+- **AC-01.3 (FR-01):** Given resultados de teste para cidades homônimas, When a lista de sugestões é exibida, Then cada resultado mostra cidade, estado/região e país quando esses dados estiverem presentes na resposta.
+- **AC-01.4 (FR-01):** Given respostas de teste que associam nome, região, país e código postal à mesma cidade, When cada forma de busca é enviada, Then a cidade correspondente aparece nos resultados. Given uma resposta de teste com alias acentuado e não acentuado, When qualquer alias é pesquisado, Then a mesma cidade aparece.
+- **AC-01.5 (FR-02):** Given uma cidade selecionada e uma resposta de clima atual com todos os campos requeridos, When os dados são carregados, Then a tela mostra temperatura, condição, sensação térmica, máxima, mínima, vento, umidade, probabilidade de chuva e horário da observação no fuso da cidade.
+- **AC-01.6 (FR-02):** Given uma cidade com fuso horário conhecido e horário de teste fixo, When o clima atual é exibido, Then o período de probabilidade de chuva termina no fim do dia local da cidade.
+- **AC-01.7 (FR-12):** Given um navegador sem sessão autenticada, When o usuário pesquisa uma cidade e abre o clima atual, Then a consulta é concluída sem solicitar login ou criação de conta.
 
 ### US-02 — Planejamento de viagem
 
-- **AC-02.1 (FR-03):** Para uma cidade selecionada, a previsão apresenta cinco datas locais: hoje e os quatro dias seguintes, com condição, máxima, mínima e probabilidade de chuva em cada dia.
-- **AC-02.2 (FR-01):** A seleção de um resultado homônimo apresenta os dados da localidade escolhida, sem substituir silenciosamente por outra cidade.
-- **AC-02.3 (FR-07):** Uma pessoa consegue adicionar até cinco cidades favoritas e removê-las individualmente; uma sexta cidade não é adicionada e o limite é informado.
-- **AC-02.4 (FR-07):** Favoritas permanecem disponíveis no mesmo navegador após recarregar a página, sem criar conta ou sincronizar com servidor.
+- **AC-02.1 (FR-03):** Given uma cidade selecionada, data de teste fixa e uma resposta com dados para hoje e os dias seguintes, When a previsão carrega, Then são exibidos exatamente cinco dias locais — hoje e os quatro seguintes — cada um com condição, máxima, mínima e probabilidade de chuva.
+- **AC-02.2 (FR-01):** Given dois resultados com o mesmo nome e regiões diferentes, When o usuário seleciona um deles, Then o clima carregado corresponde ao identificador da localidade selecionada.
+- **AC-02.3 (FR-07):** Given zero a quatro favoritas salvas, When o usuário adiciona uma cidade, Then ela é salva; Given cinco favoritas salvas, When o usuário tenta adicionar outra, Then a lista permanece com cinco e o limite é informado.
+- **AC-02.4 (FR-07):** Given uma cidade favorita salva, When a página é recarregada no mesmo navegador, Then a cidade continua na lista; When o usuário a remove, Then ela deixa de aparecer sem remover outras favoritas ou a cidade salva por localização.
 
 ### US-03 — Planejamento de atividades
 
-- **AC-03.1 (FR-04):** Ao abrir a aba de histórico, o sistema solicita e apresenta, quando disponível, os sete dias locais anteriores com condição, máxima, mínima e precipitação observada.
-- **AC-03.2 (FR-04):** Antes da abertura da aba de histórico, o sistema não solicita os dados históricos.
-- **AC-03.3 (FR-03, FR-04):** As datas da previsão e do histórico seguem o fuso local da cidade selecionada.
+- **AC-03.1 (FR-04):** Given a aba de histórico ainda não aberta, When a cidade é selecionada, Then nenhuma solicitação de histórico é enviada.
+- **AC-03.2 (FR-04):** Given uma cidade selecionada e uma resposta de teste com dados históricos disponíveis, When o usuário abre a aba de histórico, Then são solicitados e exibidos os sete dias locais anteriores com condição, máxima, mínima e precipitação observada.
+- **AC-03.3 (FR-03, FR-04):** Given uma cidade cujo fuso difere do fuso do navegador e uma data de teste fixa, When previsão e histórico são exibidos, Then todas as datas seguem o calendário local da cidade.
 
 ### US-04 — Preferência de temperatura
 
-- **AC-04.1 (FR-05):** Na primeira visita sem preferência salva, temperaturas são apresentadas em Celsius.
-- **AC-04.2 (FR-05):** Ao alternar para Fahrenheit, todos os valores de temperatura no clima atual, na previsão e no histórico são apresentados nessa unidade; vento e precipitação mantêm unidades métricas.
-- **AC-04.3 (FR-05):** Valores de temperatura são apresentados com uma casa decimal, e a preferência escolhida continua após recarregar a página no mesmo navegador.
+- **AC-04.1 (FR-05):** Given que não há preferência de unidade no armazenamento local, When o clima é exibido, Then todos os valores de temperatura usam Celsius.
+- **AC-04.2 (FR-05):** Given clima atual, previsão e histórico carregados em Celsius, When o usuário seleciona Fahrenheit, Then todos os valores de temperatura desses três blocos são atualizados para Fahrenheit e vento e precipitação permanecem em unidades métricas.
+- **AC-04.3 (FR-05):** Given qualquer valor de temperatura exibido, When o valor é renderizado, Then possui exatamente uma casa decimal; Given uma preferência de unidade salva, When a página é recarregada no mesmo navegador, Then essa unidade continua selecionada.
 
 ### US-05 — Consulta por localização
 
-- **AC-05.1 (FR-06):** A permissão de localização só é solicitada após a pessoa acionar “Usar minha localização”.
-- **AC-05.2 (FR-06):** Se a permissão for negada, indisponível ou falhar, o sistema mantém a busca manual funcional e não bloqueia a consulta.
-- **AC-05.3 (FR-06):** As coordenadas precisas não são persistidas pelo app; a cidade resolvida só é salva no navegador após consentimento e expira após 30 dias.
-- **AC-05.4 (FR-06):** A pessoa consegue apagar a cidade salva sem apagar favoritos, e vice-versa.
+- **AC-05.1 (FR-06):** Given que o usuário ainda não acionou “Usar minha localização”, When a página é aberta, Then o navegador não recebe solicitação de permissão de geolocalização.
+- **AC-05.2 (FR-06):** Given que o usuário aciona “Usar minha localização”, When a ação começa, Then o navegador solicita permissão e as coordenadas são transmitidas somente para resolver a cidade, sem gravá-las no armazenamento local ou persistência do app.
+- **AC-05.3 (FR-06):** Given que a permissão é negada ou a geolocalização falha, When o fluxo termina, Then a busca manual continua habilitada e nenhuma consulta fica bloqueada.
+- **AC-05.4 (FR-06):** Given consentimento para lembrar a localização, When a cidade é resolvida, Then somente a cidade é salva localmente; Given que passaram 30 dias da gravação, When o app é aberto, Then a cidade salva não é reutilizada como localização lembrada.
+- **AC-05.5 (FR-06):** Given cidade salva e favoritas no navegador, When o usuário apaga a cidade salva, Then favoritas permanecem; When remove uma favorita, Then a cidade salva permanece.
 
 ### US-06 — Consulta resiliente
 
-- **AC-06.1 (FR-08):** Com a página visível, dados são atualizados a cada 30 minutos; com a aba oculta, a atualização automática pausa; a pessoa pode atualizar manualmente.
-- **AC-06.2 (FR-09):** Quando a busca não encontra cidade, o sistema apresenta uma mensagem de ausência de resultados e sugestões de correção ou localidades próximas.
-- **AC-06.3 (FR-10):** Quando o provedor falha ou atinge a cota e há cache de até 24 horas, o sistema apresenta esse cache com aviso de desatualização e horário de obtenção.
-- **AC-06.4 (FR-10):** Quando não há cache válido, o sistema não apresenta os dados antigos como atuais, informa a falha e oferece uma nova tentativa.
-- **AC-06.5 (FR-10):** Falhas parciais são indicadas por bloco; dados atuais disponíveis não devem ocultar que previsão ou histórico falharam.
+- **AC-06.1 (FR-08):** Given uma página visível e dados carregados, When passam 30 minutos, Then uma atualização automática é iniciada; Given a aba oculta, When passam 30 minutos, Then nenhuma atualização automática é iniciada; When o usuário solicita atualização manual, Then uma nova atualização é iniciada.
+- **AC-06.2 (FR-09):** Given uma busca sem correspondências na resposta de teste, When a busca termina, Then a interface exibe mensagem de ausência de resultados e sugestões de correção ou localidades próximas.
+- **AC-06.3 (FR-10):** Given falha ou cota atingida e cache com até 24 horas, When a resposta do provedor falha, Then o cache é exibido com aviso de desatualização e seu horário de obtenção.
+- **AC-06.4 (FR-10):** Given cache com mais de 24 horas ou cache inexistente, When o provedor falha, Then os dados não são apresentados como atuais e a interface exibe erro com ação de nova tentativa.
+- **AC-06.5 (FR-10):** Given respostas de teste em que apenas alguns blocos estão disponíveis, When a tela é exibida, Then cada bloco indisponível é identificado sem ocultar os blocos carregados com sucesso.
 
 ### US-07 — Privacidade e acesso
 
-- **AC-07.1 (FR-11):** Nenhum evento de analytics é coletado antes do consentimento explícito.
-- **AC-07.2 (FR-11):** Recusar ou revogar consentimento interrompe a coleta de analytics e não impede busca nem consulta meteorológica.
-- **AC-07.3 (FR-12):** Busca, clima atual, previsão e histórico não exigem cadastro ou autenticação.
-- **AC-07.4 (FR-11):** Nenhum evento de analytics contém nome de cidade ou coordenada precisa; a persistência e retenção dos eventos só podem ser definidas depois de resolver a questão de não persistência no servidor.
+- **AC-07.1 (FR-11):** Given que o consentimento de analytics ainda não foi concedido, When o usuário navega ou consulta dados meteorológicos, Then nenhum evento de analytics é enviado.
+- **AC-07.2 (FR-11):** Given consentimento negado ou revogado, When o usuário pesquisa uma cidade e consulta os dados, Then nenhuma funcionalidade meteorológica é bloqueada e nenhum evento posterior é enviado.
+- **AC-07.3 (FR-11):** Given consentimento concedido e uma ação instrumentada, When o evento é preparado para envio, Then o payload não contém nome de cidade nem coordenadas precisas.
+- **AC-07.4 (FR-12):** Given um navegador sem conta, When o usuário consulta clima atual, previsão e histórico, Then todas as consultas disponíveis podem ser concluídas sem autenticação.
+- **AC-07.5 (FR-11):** Given a política de persistência e retenção de analytics ainda não foi decidida, When a coleta é implementada, Then eventos não são persistidos ou enviados a um serviço de analytics até a decisão ser registrada.
 
 ## 5. Non-Functional Requirements
 
