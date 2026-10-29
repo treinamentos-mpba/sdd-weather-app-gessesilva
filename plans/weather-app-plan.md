@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Aplicação cliente única em React + Vite, sem backend próprio, autenticação ou persistência de produto no servidor. A UI consome os serviços meteorológicos diretamente do navegador; estado de tela, preferências, favoritas, cidade lembrada e cache vivem no cliente.
+Aplicação cliente única em React + Vite, sem backend próprio, autenticação ou persistência de produto no servidor. A UI consome os serviços meteorológicos diretamente do navegador; estado de tela, preferências, favoritas e cache vivem no cliente.
 
 ```mermaid
 flowchart LR
@@ -11,25 +11,23 @@ flowchart LR
   Services --> Geo[Open-Meteo Geocoding]
   Services --> Forecast[Open-Meteo Forecast]
   Services --> Archive[Open-Meteo Archive, condicional]
-  Device[Navegador: Geolocation API] --> Reverse[Serviço de geocoding reverso, a validar]
-  Reverse --> Hook
   Services --> Cache[Cache local no navegador]
   Hook --> UI
 ```
 
-**Gate anterior à implementação:** realizar a prova de conceito (PoC) do Open-Meteo para cobertura, campos, limites e termos de uso. Busca por código postal e histórico só permanecem no MVP se a PoC comprovar suporte suficiente. Se outra capacidade essencial falhar, suspender implementação e obter decisão de escopo. A PoC também deve validar como resolver coordenadas do dispositivo em uma cidade; não assumir que o serviço de geocoding escolhido oferece geocoding reverso.
+**Gate anterior à implementação:** realizar a prova de conceito (PoC) do Open-Meteo para cobertura, campos, limites e termos de uso. Busca por código postal e histórico só permanecem no MVP se a PoC comprovar suporte suficiente. Se outra capacidade essencial falhar, suspender implementação e obter decisão de escopo.
 
 Princípios arquiteturais:
 
 - Dependências unidirecionais: `components` → `hooks` → `services` → APIs/recursos do navegador. As camadas podem importar funções puras de `lib` e contratos de `types`; `lib` não importa UI, serviços ou recursos do navegador.
 - `components` apresentam dados/estados e emitem ações por props; não fazem chamadas de rede nem acessam armazenamento.
 - `hooks` orquestram estado e operações assíncronas; não contêm detalhes de URLs ou payloads dos provedores.
-- `services` encapsulam chamadas externas e efeitos de navegador (fetch, geolocalização e localStorage); traduzem erros externos para erros do domínio.
+- `services` encapsulam chamadas externas e acesso a `localStorage`; traduzem erros externos para erros do domínio.
 - `lib` contém funções puras e determinísticas, incluindo conversão, formatação, códigos WMO, validação e mapeamento de payloads.
 - `types` contém contratos compartilhados, sem dependências de runtime.
 - Normalizar respostas externas para modelos de domínio antes de chegar aos componentes.
 - Manter estados e erros independentes por bloco meteorológico, mesmo quando clima atual e previsão vierem da mesma resposta HTTP.
-- Não gravar coordenadas precisas do dispositivo, respostas de API ou dados do usuário no servidor.
+- Não gravar respostas de API ou dados do usuário no servidor.
 - Não coletar analytics no MVP.
 
 ## Tech Stack
@@ -41,7 +39,7 @@ Princípios arquiteturais:
 | Estilo | Tailwind CSS 3 | Seguir o tema e os padrões já definidos no repositório. |
 | Dados meteorológicos | Open-Meteo, sem API key | Geocoding, previsão e, condicionalmente, arquivo histórico. |
 | Estado | React `useReducer`/hooks locais | Sem biblioteca de estado adicional para este escopo. |
-| Persistência cliente | `localStorage` com leitura/escrita defensiva | Preferência, favoritos, cidade lembrada e cache com TTL. |
+| Persistência cliente | `localStorage` com leitura/escrita defensiva | Preferência, favoritos e cache com TTL. |
 | Testes unitários/componentes | Vitest + Testing Library | Funções, serviços e estados da UI. |
 | Testes E2E | Playwright | Fluxos completos e viewports desktop/mobile. |
 | Lint/format | Biome | Seguir configuração existente. |
@@ -71,7 +69,6 @@ src/
   services/
     weatherService.ts         # chamadas Forecast/Archive e erros de domínio
     geocodingService.ts       # busca e normalização de cidades
-    geolocationService.ts     # wrapper da Geolocation API e resolução da cidade
     browserStorageService.ts  # favoritos, preferências e cache local com TTL
   lib/
     format.ts                 # formatação de datas, horas e valores
@@ -199,12 +196,49 @@ export interface StoredValue<T> {
 2. `geocodingService` converte o resultado do Open-Meteo para `City`. Para nomes homônimos, a UI exige seleção explícita; nenhuma consulta meteorológica ocorre antes da seleção.
 3. Ao selecionar a cidade, `weatherService` solicita clima atual e previsão usando latitude/longitude da cidade e `timezone=auto`. Normaliza os campos e os separa por bloco para a UI.
 4. A UI atualiza os estados de clima e previsão independentemente. Valores ausentes ficam indisponíveis; resposta parcial não apaga os demais campos/blocos válidos.
-5. A resposta é guardada no cache local por cidade e bloco, com timestamp. Cache expira após 24 horas. Preferência de unidade, até cinco favoritas e cidade resolvida (se houver consentimento, por 30 dias) também são locais.
+5. A resposta é guardada no cache local por cidade e bloco, com timestamp. Cache expira após 24 horas. Preferência de unidade e até cinco favoritas também são locais.
 6. A previsão usa hoje e os quatro dias seguintes no fuso local da cidade. O histórico condicional é solicitado somente quando a aba de histórico abre, para hoje-7 até ontem no calendário local da cidade.
 7. A atualização automática ocorre a cada 30 minutos enquanto a página está visível. Pausar enquanto oculta; ao retornar, atualizar imediatamente se o último dado tiver 30 minutos ou mais. Atualização manual segue o mesmo fluxo.
-8. Fluxo de localização: após ação explícita e permissão do navegador, `geolocationService` obtém coordenadas precisas em memória. Transmiti-las somente ao serviço escolhido para resolver a cidade. Descartá-las após a resolução; solicitar dados meteorológicos usando apenas as coordenadas de `City`. A PoC deve determinar o serviço/endereço de geocoding reverso, pois não está definido pela spec.
-9. Em falha, procurar cache local válido para o mesmo bloco. Mostrar cache com marcador stale e `fetchedAt`; sem cache válido, mostrar erro e ação de retry. Não gravar respostas meteorológicas no servidor.
-10. Analytics permanece desligado: nenhum evento, payload de usuário ou chamada de coleta é gerado.
+8. Em falha, procurar cache local válido para o mesmo bloco. Mostrar cache com marcador stale e `fetchedAt`; sem cache válido, mostrar erro e ação de retry. Não gravar respostas meteorológicas no servidor.
+9. Analytics permanece desligado: nenhum evento, payload de usuário ou chamada de coleta é gerado.
+
+### Diagrama do fluxo e caminhos de falha
+
+```mermaid
+flowchart LR
+  A[Input de busca] --> B{Consulta válida?}
+  B -- "Vazia ou menos de 2 caracteres" --> C[Hook: idle]
+  C --> D[UI: aguarda entrada]
+
+  B -- Sim --> E[Hook: loading de sugestões]
+  E --> F[Geocoding Service]
+  F --> G{Resultado do geocoding}
+
+  G -- Cidades --> H[Hook: success com sugestões]
+  H --> I[UI: lista de cidades]
+  I --> J[Usuário seleciona cidade]
+  J --> K[Hook: loading meteorológico]
+  K --> L[Forecast Service]
+  L --> M{Resposta do forecast}
+
+  M -- Completa --> N[Hook: success por bloco]
+  N --> O[UI: clima atual e previsão]
+
+  M -- Parcial --> P[Hook: erro com fallback e campos ausentes]
+  P --> Q[UI: dados disponíveis e campos indisponíveis]
+
+  M -- "Rede, API, cota ou timeout" --> R{Cache local válido por até 24h?}
+  R -- Sim --> S[Hook: success stale com aviso]
+  S --> T[UI: cache com data e hora]
+  R -- Não --> U[Hook: error]
+  U --> V[UI: erro e ação de tentar novamente]
+
+  G -- "Sem resultados" --> W[Hook: empty]
+  W --> X[UI: cidade não encontrada e sugestões]
+
+  G -- "Falha de rede ou API" --> Y[Hook: error de geocoding]
+  Y --> Z[UI: erro de busca e ação de tentar novamente]
+```
 
 ## External APIs
 
@@ -291,21 +325,12 @@ export interface StoredValue<T> {
 - **Mapeamento para `ForecastDay`:** percorrer os arrays `daily` pelo índice de `daily.time`: `time` → `date`; `weather_code` → `conditionCode`; `temperature_2m_min/max` → `minC`/`maxC`; `precipitation_probability_max` → `precipitationProbabilityMaxPercent`.
 - **Mapeamento para `WeatherData`:** associar `City`, o bloco `CurrentWeather`, os cinco `ForecastDay` e o instante local da consulta em `fetchedAt` (normalizado pelo cliente para ISO 8601 UTC). Se um bloco for inválido ou ausente, representá-lo como `null` e manter estado independente para os demais.
 - **Probabilidade restante do dia:** `daily.precipitation_probability_max` representa o máximo diário e não deve ser mapeado diretamente como probabilidade restante. O valor de `CurrentWeather.precipitationProbabilityRemainingDayPercent` depende da série `hourly.precipitation_probability` a partir do horário atual até o fim do dia local; a regra de agregação continua pendente na spec. Até sua aprovação, mapear como `null`.
-- **Não enviar:** coordenadas precisas obtidas diretamente do dispositivo; enviar somente latitude/longitude da cidade resolvida.
-
 ### Open-Meteo Archive (condicional)
 
 - **Base:** `https://archive-api.open-meteo.com/v1/archive`
 - **Uso previsto:** histórico diário de sete datas anteriores somente se a PoC confirmar os campos requeridos e cobertura suficiente.
 - **Parâmetros conceituais:** latitude/longitude da cidade, `start_date`/`end_date` no fuso local, `daily` com código de condição, temperatura máxima/mínima e precipitação observada, além de `timezone=auto`.
 - **Gate:** se suporte for insuficiente, excluir FR-04, US-03 relacionado ao histórico e AC-03.1 a AC-03.3 do escopo de implementação. Não substituir automaticamente por outro serviço.
-
-### Geocoding reverso da localização
-
-- **Entrada:** coordenadas temporárias obtidas pela Geolocation API do navegador após ação explícita do usuário.
-- **Saída:** cidade resolvida e coordenadas representativas dessa cidade.
-- **Provedor:** ainda não definido/validado na spec. A PoC deve identificar se Open-Meteo atende ao fluxo; caso contrário, obter decisão de serviço e termos antes de implementar localização.
-- **Privacidade:** coordenadas brutas não são armazenadas nem enviadas ao endpoint meteorológico. O serviço de reverse geocoding recebe as coordenadas apenas para localizar a cidade.
 
 ## State Management
 
@@ -319,7 +344,7 @@ Estados assíncronos explícitos para busca, clima atual, previsão e histórico
 - `error`: falha sem resposta completa utilizável. `fallback` contém dados parciais ou cache para exibição, `missingFields` identifica lacunas e `code` classifica a causa.
 - `empty`: operação concluída sem resultados, por exemplo, geocoding sem cidades ou histórico sem registros; não é erro de rede.
 
-Os controles transitórios de apresentação (por exemplo, foco e abertura visual de sugestões) podem ficar localmente no componente. Unidade, favoritas e cidade lembrada são carregadas do `browserStorageService`; cache e preferências são persistidos somente no navegador.
+Os controles transitórios de apresentação (por exemplo, foco e abertura visual de sugestões) podem ficar localmente no componente. Unidade e favoritas são carregadas do `browserStorageService`; cache e preferências são persistidos somente no navegador.
 
 Estado mínimo proposto:
 
@@ -334,14 +359,13 @@ export interface WeatherPageState {
   activeView: "forecast" | "history";
   unit: Unit;
   favorites: FavoriteCity[];
-  rememberedCity: City | null;
 }
 ```
 
 - Ações do reducer devem representar eventos observáveis (`SEARCH_STARTED`, `CITY_SELECTED`, `BLOCK_SUCCEEDED`, `BLOCK_EMPTY`, `BLOCK_FAILED`, `REFRESH_REQUESTED`, `VISIBILITY_CHANGED`, `UNIT_CHANGED`, `FAVORITE_ADDED`, `FAVORITE_REMOVED`).
 - Serviços recebem parâmetros explícitos e retornam dados normalizados ou erros tipados; o hook decide transições de estado.
 - `localStorage` é acessado por adaptador simples que valida JSON e schema, trata `SecurityError`/quota e degrada para sessão em memória sem bloquear consultas.
-- Não guardar coordenadas do dispositivo, eventos de analytics ou dados pessoais no estado persistido.
+- Não guardar eventos de analytics ou dados pessoais no estado persistido.
 - Estado meteorológico e cache mantêm temperatura em Celsius. Durante a renderização, a UI chama funções puras de `lib/temperature` para derivar o valor em Celsius ou Fahrenheit e formatá-lo com uma casa decimal; não alterar os dados originais nem chamar serviço/API ao trocar unidade.
 
 ## Error Handling
@@ -364,12 +388,12 @@ Limite de timeout, quantidade/intervalo de retry automático (mantido desativado
 
 ## Testing Strategy
 
-- **PoC antes da implementação:** executar casos controlados para busca global/homônimos, campos atuais, cinco dias, histórico condicional, timezone, geocoding reverso, limites, CORS e termos. Registrar cidades, campos e resultados; retirar busca postal/histórico se não passarem no gate.
+- **PoC antes da implementação:** executar casos controlados para busca global/homônimos, campos atuais, cinco dias, histórico condicional, timezone, limites, CORS e termos. Registrar cidades, campos e resultados; retirar busca postal/histórico se não passarem no gate.
 - **Vitest — `lib` (funções puras):** cobrir C→F e F→C, precisão/apresentação de uma casa decimal, datas no fuso da cidade, mapeamento de códigos WMO, normalização de query e mapeadores para `City`, `CurrentWeather` e `ForecastDay`. Testar valores normais, limites, `null` e payloads com campos ausentes; não usar mocks de rede ou navegador.
-- **Vitest — `services`:** substituir `fetch` por mocks determinísticos; verificar URL/parâmetros, mapeamento de respostas e tratamento de HTTP 429, outros HTTP não-success, erro de rede, timeout/abort, JSON inválido, schema incompleto, resposta parcial e cache fresh/stale/expirado. Mockar Geolocation API e storage para permissão negada, coordenadas do dispositivo não persistidas e falhas/limites de `localStorage`. Nunca chamar Open-Meteo real.
+- **Vitest — `services`:** substituir `fetch` por mocks determinísticos; verificar URL/parâmetros, mapeamento de respostas e tratamento de HTTP 429, outros HTTP não-success, erro de rede, timeout/abort, JSON inválido, schema incompleto, resposta parcial e cache fresh/stale/expirado. Mockar storage para falhas e limites de `localStorage`. Nunca chamar Open-Meteo real.
 - **Vitest — hooks:** verificar transições `idle → loading → success/error/empty`, ações concorrentes por bloco, cancelamento de busca obsoleta, retry manual, refresh por visibilidade e carregamento lazy do histórico quando habilitado.
-- **Vitest — componentes (Testing Library):** renderizar e verificar separadamente os estados `idle`, `loading`, `success`, `error` e `empty` de busca, clima e previsão; verificar resposta parcial com campos indisponíveis, acessibilidade por roles/labels, seleção de cidade, limites de sugestões/favoritos e localização negada. Ao alternar unidade, afirmar valores derivados atualizados e que nenhum serviço/API foi chamado novamente.
-- **Playwright — E2E:** interceptar geocoding, forecast e endpoints condicionais com `page.route`; cobrir busca → desambiguação → clima/previsão, cidade inexistente, atualização manual, atualização ao retornar à aba, cache stale e expirado, favorito após reload, unidade sem nova requisição, localização concedida/negada e uso sem login. Verificar que o endpoint meteorológico recebe coordenadas da cidade resolvida, nunca as coordenadas brutas do dispositivo. Executar cenários em viewport de 375 px e desktop; testar histórico apenas se a PoC o mantiver no MVP.
+- **Vitest — componentes (Testing Library):** renderizar e verificar separadamente os estados `idle`, `loading`, `success`, `error` e `empty` de busca, clima e previsão; verificar resposta parcial com campos indisponíveis, acessibilidade por roles/labels, seleção de cidade e limites de sugestões/favoritos. Ao alternar unidade, afirmar valores derivados atualizados e que nenhum serviço/API foi chamado novamente.
+- **Playwright — E2E:** interceptar geocoding, forecast e endpoints condicionais com `page.route`; cobrir busca → desambiguação → clima/previsão, cidade inexistente, atualização manual, atualização ao retornar à aba, cache stale e expirado, favorito após reload, unidade sem nova requisição e uso sem login. Verificar que o endpoint meteorológico recebe as coordenadas da cidade selecionada pelo usuário. Executar cenários em viewport de 375 px e desktop; testar histórico apenas se a PoC o mantiver no MVP.
 - **Playwright — resiliência e acessibilidade:** simular rede offline, timeout, 429, 5xx, resposta parcial e ausência de cache; confirmar fallback, erro/retry e isolamento dos blocos. Cobrir teclado, foco e nomes acessíveis nos fluxos críticos; automatizar verificações compatíveis com WCAG 2.2 AA e complementar com revisão manual.
 - **Métricas sem analytics:** usar sondas sintéticas para shell/disponibilidade e execução controlada com conjunto fixo de cidades para 3s e completude por bloco. Fixar perfil de rede, frequência das sondas, amostra e protocolo antes do release; não instrumentar comportamento de usuários.
 - **Gate condicional:** se a PoC retirar busca postal ou histórico, excluir os testes, critérios e tarefas desses recursos antes de iniciar a implementação.
@@ -378,7 +402,7 @@ Limite de timeout, quantidade/intervalo de retry automático (mantido desativado
 
 | Decisão | Alternativa considerada | Trade-off e consequência |
 |---|---|---|
-| Open-Meteo sem API key, condicionado à PoC | Provedor comercial com cobertura histórica/SLA mais amplo | Menor fricção e custo inicial; cobertura, histórico, reverse geocoding e limites podem exigir reduzir escopo ou uma decisão futura de provedor. Não trocar automaticamente. |
+| Open-Meteo sem API key, condicionado à PoC | Provedor comercial com cobertura histórica/SLA mais amplo | Menor fricção e custo inicial; cobertura, histórico e limites podem exigir reduzir escopo ou uma decisão futura de provedor. Não trocar automaticamente. |
 | Chamadas do browser diretamente ao provedor | Backend/proxy próprio | Evita backend e segredo de API no MVP; reduz controle server-side de cota, cache compartilhado e disponibilidade. Validar CORS/termos; se algum serviço exigir segredo, interromper e rever arquitetura, nunca expor a credencial. |
 | Estado local com `useReducer` e hooks | Biblioteca de estado global ou cache de queries | Menos dependências e suficiente para uma tela; exige implementar explicitamente cancelamento, cache, concorrência e estados. Reavaliar apenas se o estado compartilhado crescer. |
 | `localStorage` para cache/preferências/favoritos | IndexedDB ou persistência no servidor | Implementação simples, local e sem conta; pode atingir quota, ser apagado e não sincroniza dispositivos. Degradar para memória sem bloquear consultas. |

@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-O Weather App é um site responsivo para consulta meteorológica, com lançamento inicial no Brasil e busca de cidades em cobertura global. Seu público principal é o público geral. O produto permite consultar clima atual e previsão diária para hoje e os quatro dias seguintes. O histórico diário dos sete dias anteriores e a busca por código postal só entram no MVP se aprovados pela prova de conceito do Open-Meteo. O usuário também pode alternar unidades, salvar até cinco cidades favoritas e solicitar localização atual.
+O Weather App é um site responsivo para consulta meteorológica, com lançamento inicial no Brasil e busca manual de cidades em cobertura global. Seu público principal é o público geral. O produto permite consultar clima atual e previsão diária para hoje e os quatro dias seguintes. O histórico diário dos sete dias anteriores e a busca por código postal só entram no MVP se aprovados pela prova de conceito do Open-Meteo. O usuário também pode alternar unidades e salvar até cinco cidades favoritas.
 
 A interface do lançamento será em pt-BR. Não haverá autenticação nem persistência de dados do produto no servidor. Open-Meteo foi escolhido como fonte de dados, sem API key. Antes da implementação, uma prova de conceito deverá validar todas as capacidades necessárias, cobertura, termos e limites. Se não houver suporte suficiente a busca por código postal ou histórico de sete dias, esses recursos serão removidos do MVP.
 
@@ -15,8 +15,7 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - **FR-03 — Consultar previsão:** apresentar uma previsão diária para hoje e os quatro dias seguintes, no fuso local da cidade, com condição, máxima, mínima e probabilidade de chuva.
 - **FR-04 — Consultar histórico (condicional à prova de conceito):** se a prova de conceito confirmar disponibilidade suficiente dos sete dias anteriores e dos campos requeridos no Open-Meteo, apresentar o histórico diário em uma aba separada com condição, máxima, mínima e precipitação observada, carregando os dados somente quando a aba for aberta. Se o suporte for insuficiente, remover este requisito e seus critérios relacionados do MVP antes da implementação, sem substituí-lo automaticamente por outro provedor.
 - **FR-05 — Alternar unidade de temperatura:** oferecer Celsius e Fahrenheit, usando Celsius como padrão. Aplicar a escolha ao clima atual, à previsão e ao histórico; exibir uma casa decimal e guardar a preferência localmente no navegador.
-- **FR-06 — Consultar localização atual:** oferecer a ação “Usar minha localização” e só solicitar a permissão após essa ação. Transmitir as coordenadas precisas do dispositivo somente ao serviço de geolocalização para resolver a cidade, sem armazená-las. Consultas meteorológicas devem usar as coordenadas associadas à cidade resolvida, nunca as coordenadas precisas originais do dispositivo. Com consentimento separado para lembrar a localização, salvar apenas a cidade resolvida no navegador por até 30 dias. Permitir apagar a cidade salva. Se a permissão for negada ou a localização falhar, manter a busca manual disponível.
-- **FR-07 — Gerenciar cidades favoritas:** permitir salvar até cinco cidades no navegador, sem conta, e remover cada favorita independentemente da cidade salva por localização.
+- **FR-07 — Gerenciar cidades favoritas:** permitir salvar até cinco cidades no navegador, sem conta, e remover cada favorita individualmente.
 - **FR-08 — Atualizar dados meteorológicos:** atualizar os dados a cada 30 minutos enquanto a página estiver visível, pausar a atualização automática quando a aba estiver oculta e oferecer atualização manual. Ao voltar a ficar visível, atualizar se os dados exibidos tiverem 30 minutos ou mais.
 - **FR-09 — Tratar busca sem resultados:** informar quando nenhuma cidade corresponder à consulta e oferecer sugestões para corrigir o termo ou procurar localidades próximas.
 - **FR-10 — Tratar indisponibilidade e cota:** manter cache por cidade e bloco somente no navegador, por no máximo 24 horas. Ao exibir cache, informar que os dados podem estar desatualizados e mostrar a data/hora de obtenção. Sem cache válido, informar o erro e permitir nova tentativa. Aplicar o mesmo comportamento quando o serviço atingir sua cota; não persistir cache meteorológico no servidor.
@@ -30,7 +29,6 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - **US-02 — Planejamento de viagem:** Como Rafael, viajante, quero pesquisar cidades globais, distinguir localidades com nomes semelhantes e salvar favoritas para planejar os próximos dias. **Requisitos relacionados:** FR-01, FR-03, FR-07. Busca por código postal depende da prova de conceito de FR-01.
 - **US-03 — Planejamento de atividades:** Como Lúcia, planejadora de atividades ao ar livre, quero consultar a previsão e, se aprovada pela prova de conceito, o histórico de temperatura e chuva para escolher quando realizar uma atividade. **Requisitos relacionados:** FR-03, FR-04. A história deve ser removida se o histórico sair do escopo do MVP.
 - **US-04 — Preferência de temperatura:** Como Marina, usuária cotidiana, quero alternar entre Celsius e Fahrenheit para entender as temperaturas na unidade que prefiro. **Requisito relacionado:** FR-05.
-- **US-05 — Consulta por localização:** Como Marina, usuária cotidiana, quero consultar o clima da minha localização quando eu solicitar e continuar podendo pesquisar manualmente para encontrar informações sem perder o controle da minha localização. **Requisito relacionado:** FR-06.
 - **US-06 — Consulta resiliente:** Como Lúcia, planejadora de atividades ao ar livre, quero acompanhar o carregamento e receber indicação clara de cache ou falha para não confundir informação antiga com a condição atual. **Requisitos relacionados:** FR-08, FR-09, FR-10, FR-13.
 - **US-07 — Privacidade e acesso:** Como Rafael, viajante, quero consultar o app sem criar conta nem ter meu uso rastreado para acessar informações meteorológicas preservando minha privacidade. **Requisitos relacionados:** FR-11, FR-12.
 
@@ -50,7 +48,7 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - **AC-02.1 (FR-03):** Given uma cidade selecionada, data de teste fixa e uma resposta com dados para hoje e os dias seguintes, When a previsão carrega, Then são exibidos exatamente cinco dias locais — hoje e os quatro seguintes — cada um com condição, máxima, mínima e probabilidade de chuva.
 - **AC-02.2 (FR-01):** Given dois resultados com o mesmo nome e regiões diferentes, When o usuário seleciona um deles, Then o clima carregado corresponde ao identificador da localidade selecionada.
 - **AC-02.3 (FR-07):** Given zero a quatro favoritas salvas, When o usuário adiciona uma cidade, Then ela é salva; Given cinco favoritas salvas, When o usuário tenta adicionar outra, Then a lista permanece com cinco e o limite é informado.
-- **AC-02.4 (FR-07):** Given uma cidade favorita salva, When a página é recarregada no mesmo navegador, Then a cidade continua na lista; When o usuário a remove, Then ela deixa de aparecer sem remover outras favoritas ou a cidade salva por localização.
+- **AC-02.4 (FR-07):** Given uma cidade favorita salva, When a página é recarregada no mesmo navegador, Then a cidade continua na lista; When o usuário a remove, Then ela deixa de aparecer sem remover outras favoritas.
 
 ### US-03 — Planejamento de atividades
 
@@ -63,14 +61,6 @@ O objetivo é permitir que usuários encontrem rapidamente informações meteoro
 - **AC-04.1 (FR-05):** Given que não há preferência de unidade no armazenamento local, When o clima é exibido, Then todos os valores de temperatura usam Celsius.
 - **AC-04.2 (FR-05):** Given clima atual, previsão e histórico carregados em Celsius, When o usuário seleciona Fahrenheit, Then todos os valores de temperatura desses três blocos são atualizados para Fahrenheit e vento e precipitação permanecem em unidades métricas.
 - **AC-04.3 (FR-05):** Given qualquer valor de temperatura exibido, When o valor é renderizado, Then possui exatamente uma casa decimal; Given uma preferência de unidade salva, When a página é recarregada no mesmo navegador, Then essa unidade continua selecionada.
-
-### US-05 — Consulta por localização
-
-- **AC-05.1 (FR-06):** Given que o usuário ainda não acionou “Usar minha localização”, When a página é aberta, Then o navegador não recebe solicitação de permissão de geolocalização.
-- **AC-05.2 (FR-06):** Given que o usuário aciona “Usar minha localização” e concede permissão, When a cidade é resolvida e os dados meteorológicos são solicitados, Then as coordenadas precisas do dispositivo são transmitidas somente ao serviço de geolocalização, não são armazenadas nem enviadas ao provedor meteorológico; a consulta meteorológica usa as coordenadas associadas à cidade resolvida.
-- **AC-05.3 (FR-06):** Given que a permissão é negada ou a geolocalização falha, When o fluxo termina, Then a busca manual continua habilitada e nenhuma consulta fica bloqueada.
-- **AC-05.4 (FR-06):** Given consentimento para lembrar a localização, When a cidade é resolvida, Then somente a cidade é salva localmente; Given que passaram 30 dias da gravação, When o app é aberto, Then a cidade salva não é reutilizada como localização lembrada.
-- **AC-05.5 (FR-06):** Given cidade salva e favoritas no navegador, When o usuário apaga a cidade salva, Then favoritas permanecem; When remove uma favorita, Then a cidade salva permanece.
 
 ### US-06 — Consulta resiliente
 
@@ -97,7 +87,6 @@ Os NFR-01 a NFR-03 (responsividade, compatibilidade e acessibilidade) são trans
 | US-02 — Planejamento de viagem | FR-01, FR-03, FR-07 | AC-02.1 a AC-02.4 | NFR-04, NFR-06, NFR-09, NFR-10, NFR-11, NFR-12, NFR-13 |
 | US-03 — Planejamento de atividades | FR-03, FR-04 (condicional à prova de conceito) | AC-03.1 a AC-03.3 | NFR-04, NFR-05, NFR-06, NFR-07, NFR-09, NFR-10, NFR-11, NFR-12, NFR-13 |
 | US-04 — Preferência de temperatura | FR-05 | AC-04.1 a AC-04.3 | NFR-09, NFR-13 |
-| US-05 — Consulta por localização | FR-06 | AC-05.1 a AC-05.5 | NFR-08, NFR-13 |
 | US-06 — Consulta resiliente | FR-08, FR-09, FR-10, FR-13 | AC-06.1 a AC-06.7 | NFR-04, NFR-05, NFR-06, NFR-07, NFR-12, NFR-13 |
 | US-07 — Privacidade e acesso | FR-11, FR-12 | AC-07.1 a AC-07.2 | NFR-08, NFR-13 |
 
@@ -110,7 +99,7 @@ Os NFR-01 a NFR-03 (responsividade, compatibilidade e acessibilidade) são trans
 - **NFR-05 — Disponibilidade:** pelo menos 99% das verificações sintéticas mensais do endereço de produção devem carregar com sucesso o shell da aplicação. Essa métrica mede o site e não garante disponibilidade do provedor meteorológico.
 - **NFR-06 — Sucesso dos dados:** na prova de conceito e na validação de release, avaliar separadamente clima atual, previsão e histórico em consultas válidas para cidades encontradas. Cada bloco deve atingir ao menos 90% de respostas com todos os campos requeridos; respostas parciais contam como falha para essa métrica, mesmo que os campos disponíveis sejam apresentados. Não coletar telemetria de usuários para calcular essas taxas.
 - **NFR-07 — Atualidade:** durante uso ativo, os dados são atualizados a cada 30 minutos. Cache de até 24 horas só pode ser apresentado com aviso e horário da última obtenção.
-- **NFR-08 — Privacidade e conformidade:** atender à LGPD. Coordenadas precisas do dispositivo podem ser transmitidas temporariamente apenas ao serviço de geolocalização para resolver a cidade e não podem ser armazenadas pelo app. O provedor meteorológico recebe somente as coordenadas associadas à cidade resolvida. Analytics fica desativado no MVP: nenhum evento de uso pode ser coletado, enviado ou armazenado. Publicar política de privacidade no lançamento.
+- **NFR-08 — Privacidade e conformidade:** atender à LGPD. O app não solicita nem coleta coordenadas do dispositivo. A busca manual transmite ao serviço meteorológico somente as coordenadas associadas à cidade selecionada. Analytics fica desativado no MVP: nenhum evento de uso pode ser coletado, enviado ou armazenado. Publicar política de privacidade no lançamento.
 - **NFR-09 — Idioma e formatos:** interface em pt-BR no lançamento, datas e horários em formatos brasileiros, relógio de 24 horas e unidades métricas para vento e precipitação. A estrutura deve permitir inclusão futura de idiomas.
 - **NFR-10 — Uso comercial e atribuição:** o provedor precisa permitir o uso comercial pretendido; atribuição deve ser exibida quando exigida pelos termos do serviço.
 - **NFR-11 — Orçamento:** considerar inicialmente até R$ 100 por mês para dados. Qualquer contratação acima desse teto exige aprovação prévia. Busca por código postal e histórico só permanecem no MVP se a prova de conceito confirmar suporte adequado do Open-Meteo; não contratar automaticamente outro provedor pago para mantê-los.
@@ -124,8 +113,6 @@ Os NFR-01 a NFR-03 (responsividade, compatibilidade e acessibilidade) são trans
 - Cidades homônimas: exigir seleção inequívoca por região e país, quando disponíveis.
 - Caracteres especiais: remover espaços excedentes, aceitar caracteres Unicode e pontuação legítima em nomes de localidades (como acentos, hífens e apóstrofos) e codificar o texto ao enviá-lo ao provedor. Rejeitar ou tratar com segurança caracteres de controle sem quebrar a interface.
 - Código postal ou grafia não suportados pelo provedor: informar ausência de resultados sem falhar a interface.
-- Falha, negação ou timeout de geolocalização: preservar a busca manual; coordenadas não são guardadas.
-- Cidade salva com mais de 30 dias: não reutilizar automaticamente como localização lembrada; solicitar nova localização ou permitir busca manual.
 - Usuário tenta adicionar mais de cinco favoritas: manter as existentes e informar o limite.
 - Armazenamento local indisponível ou apagado: permitir consulta sem persistência e informar que preferências/favoritas podem não ser mantidas.
 - Falha de rede, erro HTTP, resposta inválida do provedor ou cota atingida: preservar a cidade selecionada e distinguir falha do serviço de cidade inexistente; mostrar cache válido com data/hora ou, sem cache válido, erro e nova tentativa.
@@ -168,6 +155,7 @@ Os NFR-01 a NFR-03 (responsividade, compatibilidade e acessibilidade) são trans
 
 - Alertas de clima severo e notificações push.
 - Contas, autenticação e sincronização de favoritos entre dispositivos.
+- Geolocalização do dispositivo, busca automática da cidade atual e geocoding reverso. Os IDs FR-06, US-05 e AC-05 foram aposentados e não serão reutilizados.
 - Persistência no servidor de cidades, preferências ou dados do app.
 - Coleta de analytics ou telemetria de comportamento de usuários no MVP.
 - Histórico meteorológico anterior aos sete dias definidos.
