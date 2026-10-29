@@ -119,29 +119,29 @@ export interface City {
 
 export interface CurrentWeather {
   observedAt: string; // Horário local da observação, conforme a resposta da API.
-  conditionCode: number; // Código WMO da variável weather_code.
-  temperatureC: number; // temperature_2m, normalizada para graus Celsius.
-  feelsLikeC: number; // apparent_temperature, normalizada para graus Celsius.
-  todayMinC: number; // temperature_2m_min para a data local atual.
-  todayMaxC: number; // temperature_2m_max para a data local atual.
-  windSpeedKmh: number; // wind_speed_10m, normalizada para km/h.
-  relativeHumidityPercent: number; // relative_humidity_2m, em porcentagem.
+  conditionCode: number | null; // Código WMO da variável weather_code, null se ausente.
+  temperatureC: number | null; // temperature_2m, normalizada para graus Celsius.
+  feelsLikeC: number | null; // apparent_temperature, normalizada para graus Celsius.
+  todayMinC: number | null; // temperature_2m_min para a data local atual.
+  todayMaxC: number | null; // temperature_2m_max para a data local atual.
+  windSpeedKmh: number | null; // wind_speed_10m, normalizada para km/h.
+  relativeHumidityPercent: number | null; // relative_humidity_2m, em porcentagem.
   precipitationProbabilityRemainingDayPercent: number | null; // Derivada de precipitation_probability horária; null se indisponível ou sem regra aprovada.
 }
 
 export interface ForecastDay {
   date: string; // Data local da série daily.time.
-  conditionCode: number; // Código WMO da variável daily.weather_code.
-  minC: number; // daily.temperature_2m_min, normalizada para Celsius.
-  maxC: number; // daily.temperature_2m_max, normalizada para Celsius.
+  conditionCode: number | null; // Código WMO da variável daily.weather_code.
+  minC: number | null; // daily.temperature_2m_min, normalizada para Celsius.
+  maxC: number | null; // daily.temperature_2m_max, normalizada para Celsius.
   precipitationProbabilityMaxPercent: number | null; // daily.precipitation_probability_max, em porcentagem.
 }
 
 export interface HistoricalDay {
   date: string; // Data local retornada pelo endpoint de arquivo.
-  conditionCode: number; // Código WMO da condição histórica.
-  minC: number; // Temperatura mínima observada, normalizada para Celsius.
-  maxC: number; // Temperatura máxima observada, normalizada para Celsius.
+  conditionCode: number | null; // Código WMO da condição histórica.
+  minC: number | null; // Temperatura mínima observada, normalizada para Celsius.
+  maxC: number | null; // Temperatura máxima observada, normalizada para Celsius.
   precipitationObservedMm: number | null; // Precipitação observada no dia, em milímetros.
 }
 
@@ -159,8 +159,9 @@ export type DataFreshness = "fresh" | "stale";
 export type AsyncBlock<T> =
   | { status: "idle" }
   | { status: "loading"; previous?: T }
-  | { status: "success"; data: T; freshness: DataFreshness; fetchedAt: string }
-  | { status: "error"; code: WeatherErrorCode; message: string; fallback?: T; fetchedAt?: string };
+  | { status: "empty"; message: string }
+  | { status: "success"; data: T; freshness: DataFreshness; fetchedAt: string; sourceError?: WeatherErrorCode }
+  | { status: "error"; code: WeatherErrorCode; message: string; fallback?: T; missingFields?: string[]; fetchedAt?: string };
 
 export type WeatherErrorCode =
   | "network"
@@ -308,7 +309,17 @@ export interface StoredValue<T> {
 
 ## State Management
 
-Usar `useReducer` encapsulado em `useWeather` para coordenar seleção de cidade, pesquisa, refresh e estados independentes dos blocos. Evitar biblioteca de estado global e efeitos de rede dentro de componentes de apresentação.
+O estado de domínio da tela vive em `useReducer` encapsulado no hook `useWeather`, no nível da tela/app. O hook coordena consulta, cidade selecionada, atualização e estados independentes por bloco; não guardar estado meteorológico em componentes nem introduzir biblioteca global.
+
+Estados assíncronos explícitos para busca, clima atual, previsão e histórico:
+
+- `idle`: operação ainda não iniciada ou sem cidade selecionada.
+- `loading`: operação em andamento; pode manter dados anteriores como `previous`, sem tratá-los como resposta nova.
+- `success`: dados válidos; `freshness` identifica resposta atual ou cache stale. `sourceError` pode indicar que a resposta veio de cache após falha do provedor.
+- `error`: falha sem resposta completa utilizável. `fallback` contém dados parciais ou cache para exibição, `missingFields` identifica lacunas e `code` classifica a causa.
+- `empty`: operação concluída sem resultados, por exemplo, geocoding sem cidades ou histórico sem registros; não é erro de rede.
+
+Os controles transitórios de apresentação (por exemplo, foco e abertura visual de sugestões) podem ficar localmente no componente. Unidade, favoritas e cidade lembrada são carregadas do `browserStorageService`; cache e preferências são persistidos somente no navegador.
 
 Estado mínimo proposto:
 
@@ -327,38 +338,37 @@ export interface WeatherPageState {
 }
 ```
 
-- Ações do reducer devem representar eventos observáveis (`SEARCH_STARTED`, `CITY_SELECTED`, `BLOCK_SUCCEEDED`, `BLOCK_FAILED`, `REFRESH_REQUESTED`, `VISIBILITY_CHANGED`, `UNIT_CHANGED`, `FAVORITE_ADDED`, `FAVORITE_REMOVED`).
+- Ações do reducer devem representar eventos observáveis (`SEARCH_STARTED`, `CITY_SELECTED`, `BLOCK_SUCCEEDED`, `BLOCK_EMPTY`, `BLOCK_FAILED`, `REFRESH_REQUESTED`, `VISIBILITY_CHANGED`, `UNIT_CHANGED`, `FAVORITE_ADDED`, `FAVORITE_REMOVED`).
 - Serviços recebem parâmetros explícitos e retornam dados normalizados ou erros tipados; o hook decide transições de estado.
 - `localStorage` é acessado por adaptador simples que valida JSON e schema, trata `SecurityError`/quota e degrada para sessão em memória sem bloquear consultas.
 - Não guardar coordenadas do dispositivo, eventos de analytics ou dados pessoais no estado persistido.
-- Conversão de unidade e formatação são funções puras na camada `lib`; estado interno permanece em Celsius.
+- Estado meteorológico e cache mantêm temperatura em Celsius. Durante a renderização, a UI chama funções puras de `lib/temperature` para derivar o valor em Celsius ou Fahrenheit e formatá-lo com uma casa decimal; não alterar os dados originais nem chamar serviço/API ao trocar unidade.
 
 ## Error Handling
 
-| Condição | Estado/ação | Resultado visível e persistência |
+| Condição | Transição/ação | Resultado visível |
 |---|---|---|
-| Busca vazia ou menor que dois caracteres | Não iniciar geocoding | Campo permanece editável; sem erro de API. |
-| Sem resultados de geocoding | Estado vazio | Informar cidade não encontrada e sugerir correção; não solicitar weather. |
-| Cidades homônimas | Estado de seleção | Listar cidade/região/país; só buscar após escolha. |
-| Permissão negada ou geolocalização falha | Erro do fluxo de localização | Preservar busca manual; descartar coordenadas temporárias. |
-| Serviço de geocoding reverso não disponível | Erro de localização | Mensagem e busca manual; não consultar clima por coordenada bruta. |
-| Timeout | Erro tipado `timeout` | O timeout efetivo é configuração pendente; ao expirar, usar cache válido ou retry. |
-| Falha de rede, HTTP, schema inesperado ou cota | Erro por bloco | Manter blocos válidos; usar cache local de até 24h com rótulo stale, senão mensagem e retry. |
-| Campo opcional ausente | Valor indisponível | Exibir indisponibilidade, nunca zero ou dado inferido. |
-| Bloco obrigatório incompleto | Falha para métrica de sucesso | Mostrar campos disponíveis, sinalizar bloco incompleto; contar como falha na PoC/release. |
-| `localStorage` indisponível | Fallback em memória | Consultas continuam; avisar somente quando persistência de favoritos/preferência não puder ser mantida. |
-| Resposta inválida | Erro `invalid_response` | Não renderizar valores sem validação; cache válido pode ser usado. |
-| Analytics | Desativado | Não gerar chamadas nem payloads de analytics em nenhum estado. |
+| Antes de iniciar uma operação | `idle` | Sem erro; busca aguarda entrada ou seleção de cidade. |
+| Busca ou bloco iniciado | `loading` | Indicador do bloco; preservar `previous` sem apresentá-lo como dado recém-atualizado. |
+| Geocoding conclui sem resultados ou histórico sem registros | `empty` | Mensagem específica e ação apropriada; não solicitar forecast para cidade inexistente. |
+| Rede indisponível | `success` stale com `sourceError=network`, se houver cache local do mesmo bloco com até 24h; caso contrário `error` | Aviso e timestamp no fallback; sem cache, erro e ação manual de tentar novamente. Não repetir automaticamente até a política de retry ser definida. |
+| API retorna HTTP não-success | Classificar `429` como `quota`; demais respostas como `http`; `5xx` pode usar cache | Aplicar fallback válido do mesmo bloco ou exibir erro com retry manual. Não tratar falha HTTP como cidade inexistente. |
+| Resposta JSON inválida ou schema inesperado | `error` com `invalid_response` | Não renderizar valores não validados; usar cache local válido se disponível, senão erro e retry manual. |
+| Timeout | Abortar a requisição com `AbortController` e transicionar para `success` stale se houver cache válido, senão `error` com `timeout` | Mostrar aviso de cache ou erro e retry manual. A duração máxima permanece pendente na spec; cancelar também requisições obsoletas de outra cidade. |
+| Resposta parcial/campo ausente | Mapear campos numéricos ausentes para `null`; se faltar campo requerido, `error` com `fallback` parcial e `missingFields` | Exibir campos recebidos e marcar ausentes como indisponíveis; nunca usar zero ou inferir valor. Contar bloco incompleto como falha na métrica de sucesso. |
+| Um bloco falha e outros têm dados válidos | Transição independente por bloco | Manter blocos válidos visíveis; não transformar falha de forecast/histórico em falha de clima atual, nem ocultar o aviso do bloco. |
+| `localStorage` indisponível/cheio | Fallback em memória | Consultas continuam; preferências, favoritas e cache podem não persistir e isso é informado quando relevante. |
+| Analytics no MVP | Nenhuma transição de coleta | Nenhuma chamada ou payload de analytics é gerado. |
 
-O limite de timeout, a política de retry (quantidade/intervalo) e o texto final de erro devem ser definidos antes de codificar, sem reter dados de formulário ou localização em logs de terceiros.
+Limite de timeout, quantidade/intervalo de retry automático (mantido desativado até decisão) e textos finais de erro devem ser definidos antes de codificar. Não registrar consulta, coordenadas do dispositivo ou payloads meteorológicos em logs de terceiros.
 
 ## Testing Strategy
 
 - **Gate de PoC:** antes da implementação, testar em conjunto representativo de cidades/países: busca por nome e homônimos, cobertura de campos atuais e cinco dias, histórico de sete dias, timezone, termos, limites, latência e reverse geocoding. Registrar resultados e remover postal/histórico do MVP se não atenderem ao gate.
 - **Testes de `lib` (Vitest):** testar funções puras por entradas/saídas; normalização de busca, mapeadores dos payloads, códigos WMO, conversão C/F, arredondamento e tratamento de timezone. Sem mocks de navegador/rede.
 - **Testes de `services`:** mock de `fetch`, Geolocation API e storage; cobrir sucesso, timeout, erro HTTP, cota, JSON/schema inválido, campos ausentes, respostas parciais, TTL e fallback de cache. Nunca chamar Open-Meteo real nos testes automatizados.
-- **Testes de hooks:** verificar transições de estado e orquestração: loading/success/error por bloco, refresh, seleção de cidade, retorno da aba visível e carregamento sob demanda do histórico.
-- **Testes de componentes:** Testing Library com queries acessíveis; verificar debounce quando definido, mínimo de dois caracteres, lista máxima de cinco, desambiguação, estados loading/empty/error/success, conversão, limites de favoritas, localização negada e ausência de chamadas de analytics.
+- **Testes de hooks:** verificar transições idle/loading/success/error/empty por bloco, refresh, seleção de cidade, retorno da aba visível e carregamento sob demanda do histórico.
+- **Testes de componentes:** Testing Library com queries acessíveis; verificar debounce quando definido, mínimo de dois caracteres, lista máxima de cinco, desambiguação, estados idle/loading/success/error/empty, conversão derivada e ausência de chamadas de serviço ao alternar unidade, limites de favoritas, localização negada e ausência de chamadas de analytics.
 - **E2E (Playwright):** interceptar todas as APIs com `page.route`; percorrer busca → seleção → clima/previsão, atualização manual/automática, aba de histórico quando habilitada, localização concedida/negada, cache expirado e ausência de autenticação. Cobrir viewport a partir de 375 px e desktop.
 - **Acessibilidade:** verificar teclado, foco, labels/roles e fluxos críticos; incluir checagens automatizadas e validação manual compatível com WCAG 2.2 AA.
 - **NFRs operacionais:** usar verificações sintéticas do shell para a meta de 99%; medir 3s e taxa de sucesso em ambiente controlado após definir perfil de rede, cidades de amostra e protocolo. Sem analytics de usuários.
