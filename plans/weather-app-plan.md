@@ -123,6 +123,7 @@ export interface CurrentWeather {
   todayMaxC: number | null; // temperature_2m_max para a data local atual.
   windSpeedKmh: number | null; // wind_speed_10m, normalizada para km/h.
   relativeHumidityPercent: number | null; // relative_humidity_2m, em porcentagem.
+  surfacePressureHpa: number | null; // surface_pressure, em hectopascais.
   precipitationProbabilityRemainingDayPercent: number | null; // Derivada de precipitation_probability horária; null se indisponível ou sem regra aprovada.
 }
 
@@ -273,8 +274,8 @@ flowchart LR
 
 ### Open-Meteo Forecast
 
-- **URL de exemplo:** `https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=precipitation_probability&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm&timezone=auto&forecast_days=5`
-- **Parâmetros relevantes:** `latitude`/`longitude` são os da cidade resolvida; `current` pede condições atuais; `daily` pede séries por dia; `hourly=precipitation_probability` fornece a série horária necessária para avaliar chuva restante no dia; `timezone=auto` usa o fuso das coordenadas e o devolve na resposta; `forecast_days=5` solicita hoje e os quatro dias seguintes; `temperature_unit=celsius`, `wind_speed_unit=kmh` e `precipitation_unit=mm` fixam as unidades recebidas.
+- **URL de exemplo:** `https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=precipitation_probability&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm&timezone=auto&forecast_days=5`
+- **Parâmetros relevantes:** `latitude`/`longitude` são os da cidade resolvida; `current` pede temperatura, sensação, condição, vento, umidade e pressão de superfície; `daily` pede séries por dia; `hourly=precipitation_probability` fornece a série horária necessária para avaliar chuva restante no dia; `timezone=auto` usa o fuso das coordenadas e o devolve na resposta; `forecast_days=5` solicita hoje e os quatro dias seguintes; `temperature_unit=celsius`, `wind_speed_unit=kmh` e `precipitation_unit=mm` fixam as unidades recebidas.
 - **Resposta resumida (valores ilustrativos; arrays diários usam o mesmo índice para cada data):**
 
 ```json
@@ -289,7 +290,8 @@ flowchart LR
     "relative_humidity_2m": "%",
     "apparent_temperature": "°C",
     "weather_code": "wmo code",
-    "wind_speed_10m": "km/h"
+    "wind_speed_10m": "km/h",
+    "surface_pressure": "hPa"
   },
   "current": {
     "time": "2026-10-29T14:00",
@@ -297,7 +299,8 @@ flowchart LR
     "relative_humidity_2m": 62,
     "apparent_temperature": 25.1,
     "weather_code": 2,
-    "wind_speed_10m": 12.4
+    "wind_speed_10m": 12.4,
+    "surface_pressure": 1014.2
   },
   "hourly": {
     "time": ["2026-10-29T14:00", "2026-10-29T15:00"],
@@ -321,7 +324,7 @@ flowchart LR
 ```
 
 - **Mapeamento para `City`:** coordenadas do request identificam a cidade; `timezone` da resposta é a fonte autoritativa para `City.timezone` se o geocoding não a retornar.
-- **Mapeamento para `CurrentWeather`:** `current.time` → `observedAt`; `weather_code` → `conditionCode`; `temperature_2m` → `temperatureC`; `apparent_temperature` → `feelsLikeC`; `wind_speed_10m` → `windSpeedKmh`; `relative_humidity_2m` → `relativeHumidityPercent`. As temperaturas mínima/máxima do dia vêm dos elementos de `daily.temperature_2m_min/max` cuja `daily.time` coincide com a data local atual.
+- **Mapeamento para `CurrentWeather`:** `current.time` → `observedAt`; `weather_code` → `conditionCode`; `temperature_2m` → `temperatureC`; `apparent_temperature` → `feelsLikeC`; `wind_speed_10m` → `windSpeedKmh`; `relative_humidity_2m` → `relativeHumidityPercent`; `surface_pressure` → `surfacePressureHpa`. As temperaturas mínima/máxima do dia vêm dos elementos de `daily.temperature_2m_min/max` cuja `daily.time` coincide com a data local atual.
 - **Mapeamento para `ForecastDay`:** percorrer os arrays `daily` pelo índice de `daily.time`: `time` → `date`; `weather_code` → `conditionCode`; `temperature_2m_min/max` → `minC`/`maxC`; `precipitation_probability_max` → `precipitationProbabilityMaxPercent`.
 - **Mapeamento para `WeatherData`:** associar `City`, o bloco `CurrentWeather`, os cinco `ForecastDay` e o instante local da consulta em `fetchedAt` (normalizado pelo cliente para ISO 8601 UTC). Se um bloco for inválido ou ausente, representá-lo como `null` e manter estado independente para os demais.
 - **Probabilidade restante do dia:** `daily.precipitation_probability_max` representa o máximo diário e não deve ser mapeado diretamente como probabilidade restante. O valor de `CurrentWeather.precipitationProbabilityRemainingDayPercent` depende da série `hourly.precipitation_probability` a partir do horário atual até o fim do dia local; a regra de agregação continua pendente na spec. Até sua aprovação, mapear como `null`.

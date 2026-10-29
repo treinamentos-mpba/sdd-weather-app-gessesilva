@@ -14,6 +14,7 @@
 | Desambiguação de homônimos | `/v1/search?name=Springfield&count=5&language=pt&format=json` | HTTP 200; cinco resultados incluem Missouri, Illinois, Massachusetts, Ohio e Tennessee, todos nos EUA, com coordenadas/timezones distintos. | **APROVADO** para desambiguação por região e país. |
 | Alias sem acento | `/v1/search?name=Sao+Paulo&count=5&language=pt&format=json` | HTTP 200; o primeiro resultado tem o mesmo ID `3448439` da busca “São Paulo”. | **APROVADO** para o alias testado. |
 | Código postal | `/v1/search?name=01310-100&count=5&language=pt&format=json` | HTTP 200; `results` vazio para o CEP brasileiro consultado. | **REPROVADO** para o CEP testado; não há evidência de suporte adequado a códigos postais. Aplicar a regra de T-03 e remover busca postal do MVP, salvo nova evidência aprovada. |
+| Pressão de superfície | `/v1/forecast`; São Paulo; `current=surface_pressure`, `timezone=auto`, `forecast_days=1`. | HTTP 200; timezone `America/Sao_Paulo`; unidade `hPa`; valor observado `931 hPa` às 15:30 locais em 2026-10-29. | **APROVADO** na amostra brasileira; mapear para `surfacePressureHpa`. |
 | Forecast Brasil | `/v1/forecast`; latitude `-23.5505`, longitude `-46.6333`; variáveis `current`, `daily`, `hourly`; `timezone=auto`, `forecast_days=5`, Celsius/km/h/mm. | HTTP 200; timezone `America/Sao_Paulo`; campos atuais requeridos presentes (`temperature_2m`, `relative_humidity_2m`, `apparent_temperature`, `weather_code`, `wind_speed_10m`); cinco datas locais, de 2026-10-29 a 2026-11-02; arrays diários completos. | **APROVADO** na amostra brasileira. |
 | Probabilidade horária restante do dia | Forecast de São Paulo; `hourly=precipitation_probability`. | Na consulta focada às 15:30 locais, foram retornadas oito horas restantes (16:00–23:00), sem valores nulos; primeiro e último valores observados: 94% e 94%. | **APROVADO** quanto à disponibilidade horária na amostra. A fórmula para resumir a série em uma probabilidade única continua pendente em T-04; não usar o máximo diário como substituto sem decisão. |
 | Forecast internacional | `/v1/forecast` para Paris; mesma seleção de variáveis, `timezone=auto`, `forecast_days=5`, Celsius/km/h/mm. | HTTP 200; timezone `Europe/Paris`; os cinco dias locais (2026-10-29 a 2026-11-02) vieram com temperatura máxima/mínima e probabilidade diária sem valores nulos; os campos atuais solicitados estavam presentes. | **APROVADO** na amostra internacional. |
@@ -24,12 +25,12 @@
 
 Variáveis solicitadas:
 
-- `current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m`
+- `current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure`
 - `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max`
 - `hourly=precipitation_probability`
 - `timezone=auto`, `forecast_days=5`, `temperature_unit=celsius`, `wind_speed_unit=kmh`, `precipitation_unit=mm`
 
-As respostas observadas permitem mapear clima atual, cinco dias e fuso para os campos previstos em `City`, `CurrentWeather` e `ForecastDay`. A probabilidade horária está disponível, mas sua agregação para o restante do dia não foi decidida nesta PoC.
+As respostas observadas permitem mapear clima atual, pressão de superfície, cinco dias e fuso para os campos previstos em `City`, `CurrentWeather` e `ForecastDay`. A probabilidade horária está disponível, mas sua agregação para o restante do dia não foi decidida nesta PoC.
 
 ## Conclusão para T-03
 

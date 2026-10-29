@@ -74,7 +74,7 @@ Fonte: `plans/weather-app-plan.md`. Localização do dispositivo foi removida do
 | Requisito | Tarefas de implementação | Tarefas de teste | Cobertura/observação |
 |---|---|---|---|
 | FR-01 — Buscar cidades | T-10, T-14, T-19 | T-31, T-34, T-39, T-46 | Coberto; se a PoC aprovar busca postal, incluir esse cenário em T-31. |
-| FR-02 — Consultar clima atual | T-11, T-15, T-22 | T-32, T-35, T-41, T-46 | Coberto. |
+| FR-02 — Consultar clima atual | T-11, T-15, T-22 | T-32, T-35, T-41, T-46 | Coberto; pressão de superfície vem de `surface_pressure` em hPa. |
 | FR-03 — Consultar previsão | T-11, T-15, T-23 | T-32, T-35, T-42, T-46 | Coberto. |
 | FR-04 — Consultar histórico | T-13, T-18, T-26 (condicionais) | T-38, T-45, T-47 (condicionais) | Implementação condicional; falta teste unitário explícito do request e mapeamento do Archive. |
 | FR-05 — Alternar unidade | T-08, T-24 | T-29, T-43, T-47 | Coberto; alternância sem nova chamada. |
@@ -180,7 +180,7 @@ FR-06, US-05 e AC-05 foram aposentados; não são lacunas de implementação. As
 ### T-11 — Implementar serviço de forecast
 
 - **Descrição:** consultar clima atual e cinco dias para a cidade selecionada.
-- **Critérios de aceite:** request usa latitude/longitude da `City`, `timezone=auto`, `forecast_days=5`, unidades aprovadas e variáveis de T-01/T-04; resposta normalizada mantém até cinco datas locais; erros são convertidos em códigos de domínio.
+- **Critérios de aceite:** request usa latitude/longitude da `City`, `timezone=auto`, `forecast_days=5`, unidades aprovadas e variáveis de T-01/T-04, incluindo `surface_pressure` em `current`; resposta normalizada mantém até cinco datas locais; erros são convertidos em códigos de domínio.
 - **Dependências:** T-04, T-06, T-07, T-08.
 - **Arquivos prováveis:** `src/services/weatherService.ts`.
 - **Tipo:** Data.
@@ -272,7 +272,7 @@ FR-06, US-05 e AC-05 foram aposentados; não são lacunas de implementação. As
 ### T-22 — Implementar clima atual
 
 - **Descrição:** renderizar valores disponíveis, condição e horário local da observação.
-- **Critérios de aceite:** cada campo disponível é exibido; campos `null` aparecem indisponíveis e nunca como zero; alternar unidade não muta os dados em Celsius.
+- **Critérios de aceite:** cada campo disponível, incluindo pressão em hPa, é exibido; campos `null` aparecem indisponíveis e nunca como zero; alternar unidade não muta os dados em Celsius.
 - **Dependências:** T-08, T-09, T-15, T-21.
 - **Arquivos prováveis:** `src/components/CurrentWeather.tsx`.
 - **Tipo:** UI.
@@ -356,7 +356,7 @@ FR-06, US-05 e AC-05 foram aposentados; não são lacunas de implementação. As
 ### T-32 — Testar serviço de forecast
 
 - **Descrição:** cobrir transporte, payload e erros do serviço meteorológico.
-- **Critérios de aceite:** `pnpm test -- weatherService` mocka `fetch` e cobre sucesso, 429, 5xx, rede, timeout/abort, JSON inválido, campo ausente e resposta parcial; não chama API real.
+- **Critérios de aceite:** `pnpm test -- weatherService` mocka `fetch` e cobre sucesso com `surface_pressure`, 429, 5xx, rede, timeout/abort, JSON inválido, campo ausente e resposta parcial; não chama API real.
 - **Dependências:** T-11, T-27.
 - **Arquivos prováveis:** `tests/unit/weatherService.test.ts`.
 - **Tipo:** Test.
@@ -428,7 +428,7 @@ FR-06, US-05 e AC-05 foram aposentados; não são lacunas de implementação. As
 ### T-41 — Testar apresentação do clima atual
 
 - **Descrição:** validar conteúdo, campos ausentes e estados do bloco.
-- **Critérios de aceite:** testes cobrem campos recebidos/nulos, timestamp local e loading/error; `null` nunca aparece como zero.
+- **Critérios de aceite:** testes cobrem campos recebidos/nulos, pressão em hPa, timestamp local e loading/error; `null` nunca aparece como zero.
 - **Dependências:** T-22, T-27.
 - **Arquivos prováveis:** `tests/unit/CurrentWeather.test.tsx`.
 - **Tipo:** Test.
