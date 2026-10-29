@@ -6,6 +6,23 @@ O produto é um site responsivo de consulta meteorológica para o público geral
 
 A experiência será em pt-BR no lançamento, mas a estrutura deve permitir inclusão de outros idiomas. A fonte de dados precisa cobrir geocodificação global, clima atual, previsão e histórico. A escolha do provedor depende da validação de cobertura, preço e confiabilidade.
 
+## Personas
+
+As personas abaixo são hipóteses iniciais, a validar com usuários reais.
+
+- **Marina — usuária cotidiana**
+	- **Objetivo principal:** saber como está o tempo e se precisa ajustar os planos do dia.
+	- **Contexto de uso:** principalmente no celular, antes de sair de casa ou durante deslocamentos; consulta o clima atual e a previsão diária.
+	- **Métrica de sucesso pessoal:** encontrar sua cidade e entender as condições do dia em menos de um minuto.
+- **Rafael — viajante**
+	- **Objetivo principal:** verificar o clima de cidades que pretende visitar e comparar os próximos dias.
+	- **Contexto de uso:** no desktop ao planejar uma viagem e no celular durante o deslocamento; pesquisa cidades globais e salva favoritas.
+	- **Métrica de sucesso pessoal:** consultar as cidades da viagem e a previsão de cinco dias sem confundir localidades ou fusos.
+- **Lúcia — planejadora de atividades ao ar livre**
+	- **Objetivo principal:** escolher dias adequados para atividades considerando chuva e temperaturas.
+	- **Contexto de uso:** principalmente no celular, com consultas recorrentes à previsão e ao histórico diário.
+	- **Métrica de sucesso pessoal:** encontrar rapidamente os dados de chuva e temperatura necessários para decidir quando realizar a atividade.
+
 ## Requisitos Funcionais
 
 - **RF-01 — Buscar cidades:** aceitar nome da cidade, estado/região, país e código postal. Exibir sugestões após dois caracteres, até cinco resultados, distinguindo cidades por cidade, estado/região e país. A busca deve tolerar acentos e variações de grafia quando suportado pelo provedor.
