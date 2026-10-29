@@ -4,7 +4,17 @@
 
 O produto é um site responsivo de consulta meteorológica para o público geral, com lançamento inicial no Brasil e busca de cidades em cobertura global. O usuário poderá consultar o clima atual, a previsão diária dos próximos cinco dias e o histórico diário dos sete dias anteriores. O app não exigirá conta.
 
-A experiência será em pt-BR no lançamento, mas a estrutura deve permitir inclusão de outros idiomas. A fonte de dados precisa cobrir geocodificação global, clima atual, previsão e histórico. A escolha do provedor depende da validação de cobertura, preço e confiabilidade.
+A experiência será em pt-BR no lançamento, mas a estrutura deve permitir inclusão de outros idiomas. Open-Meteo foi escolhido como fonte de dados, sem uso de API key. Ainda é necessário validar a cobertura dos requisitos, os termos comerciais e a disponibilidade dos dados históricos.
+
+## Decisões
+
+| Decisão | Justificativa | Pergunta em aberto que resolve |
+|---|---|---|
+| **Fonte de dados: Open-Meteo, sem API key.** | Evita configurar e gerenciar uma chave de API para a integração inicial. | Define o provedor inicialmente escolhido. Ainda é necessário validar cobertura global, histórico de sete dias, termos de uso comercial, atribuição e limites do serviço. |
+| **“Cinco dias” significa hoje mais os quatro dias seguintes.** | Torna explícito o período mostrado na consulta diária. | Resolve a ambiguidade sobre a contagem dos cinco dias e mantém o critério usado em RF-03. |
+| **Celsius será a unidade padrão.** | Define uma apresentação inicial consistente com o lançamento no Brasil, mantendo a opção Fahrenheit. | Resolve a unidade inicial; a preferência do usuário continua persistida no navegador. |
+| **Não haverá autenticação nem persistência de dados do app no servidor.** | Mantém a arquitetura sem contas e evita armazenar no servidor dados de usuário do produto. | Resolve a necessidade de conta e armazenamento/sincronização de dados do app no servidor. Favoritos, preferência de unidade e cidade resolvida permanecem locais no navegador. A compatibilidade com analytics retidos por 90 dias precisa ser esclarecida. |
+| **O idioma da interface no lançamento será pt-BR.** | Atende ao mercado inicial definido para o Brasil. | Resolve o idioma inicial; a estrutura continuará preparada para outros idiomas no futuro. |
 
 ## Personas
 
@@ -70,11 +80,12 @@ As personas abaixo são hipóteses iniciais, a validar com usuários reais.
 
 ## Perguntas em Aberto
 
-1. Qual provedor atende aos requisitos de cobertura global, busca por cidade/código postal, clima atual, previsão e histórico de sete dias, com uso comercial permitido e custo aprovado?
-2. O orçamento inicial é limitado a R$ 100 por mês; qualquer aumento exige aprovação. Qual valor poderá ser aprovado caso não exista opção adequada nesse teto?
-3. Como o provedor define e fornece os dados históricos diários e a probabilidade de chuva para o restante do dia em diferentes regiões?
+1. O Open-Meteo atende aos requisitos de cobertura global, busca por cidade/código postal, clima atual, previsão e histórico de sete dias, respeitando os termos de uso comercial e atribuição?
+2. O orçamento inicial é limitado a R$ 100 por mês; qualquer aumento exige aprovação. Qual valor poderá ser aprovado caso o Open-Meteo ou uma alternativa adequada ultrapasse esse teto?
+3. Como o Open-Meteo fornece os dados históricos diários e a probabilidade de chuva para o restante do dia em diferentes regiões?
 4. Quais condições compõem “rede normal” para validar o tempo médio de resposta de até três segundos?
 5. Quais textos e canais de contato devem constar na política de privacidade e na interface de consentimento, conforme revisão jurídica da LGPD?
+6. A decisão de não persistir dados no servidor exclui também os eventos agregados de analytics, ou eles poderão continuar retidos por até 90 dias conforme consentimento explícito?
 
 ## Suposições
 
@@ -82,5 +93,5 @@ As personas abaixo são hipóteses iniciais, a validar com usuários reais.
 - Uma consulta válida é uma busca que resolve uma cidade; o sucesso principal exige que o bloco de clima atual carregue. Previsão e histórico têm indicadores separados.
 - A meta de 99% refere-se ao site acessível; indisponibilidade de dados externos é acompanhada pelas métricas de sucesso dos blocos.
 - A preferência de Celsius/Fahrenheit, favoritos e cidade resolvida a partir da localização são armazenados somente no navegador; não há sincronização entre dispositivos.
-- O provedor poderá ser pago caso necessário para manter o histórico obrigatório, condicionado à aprovação de orçamento.
+- Open-Meteo é o provedor escolhido inicialmente; uma alternativa paga para manter o histórico obrigatório depende de aprovação de orçamento.
 - Alertas de clima severo, notificações, contas e histórico além dos sete dias anteriores estão fora do MVP.
