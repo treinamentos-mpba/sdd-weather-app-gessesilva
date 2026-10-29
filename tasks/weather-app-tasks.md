@@ -2,38 +2,25 @@
 
 Fonte: `plans/weather-app-plan.md`. Localização do dispositivo foi removida do escopo; não há tarefas para reverse geocoding. Busca por código postal e histórico são condicionais à PoC: se não passarem, T-03 retira-os do MVP e as tarefas correspondentes ficam não aplicáveis.
 
-## Rastreabilidade para a spec
+## Cobertura por requisito funcional
 
-| Tarefa | Referências da spec |
-|---|---|
-| T-01 | FR-01 a FR-04; AC-01.3 a AC-01.6, AC-02.1 e AC-03.2; Perguntas em Aberto 1 e 4 |
-| T-02 | NFR-10 a NFR-12; Perguntas em Aberto 2 e 3 |
-| T-03 | FR-01 e FR-04; AC-01.4 e AC-03.1 a AC-03.3; NFR-11; Out of Scope |
-| T-04 | FR-02, FR-08 e FR-10; AC-01.6, AC-06.1, AC-06.3 e AC-06.4; Perguntas em Aberto 4, 8 e 9 |
-| T-05 | NFR-04 a NFR-06 e NFR-12; Perguntas em Aberto 5 e 6 |
-| T-06 a T-07 | FR-01 a FR-04; AC-01.4, AC-01.5, AC-02.1 e AC-03.2 |
-| T-08 | FR-05; AC-04.1 a AC-04.3; NFR-09 |
-| T-09 | FR-02 e FR-03; AC-01.5 e AC-02.1 |
-| T-10 a T-11 | FR-01 e FR-09; AC-01.1 a AC-01.4, AC-02.2 e AC-06.2 |
-| T-12 | FR-02, FR-03 e FR-10; AC-01.5, AC-01.6, AC-02.1 e AC-06.5 a AC-06.6 |
-| T-13 | FR-05, FR-07 e FR-10; AC-02.3 a AC-02.4, AC-04.1 a AC-04.3, AC-06.3 a AC-06.4; NFR-13 |
-| T-14 a T-15 | FR-01, FR-09 e FR-13; AC-01.1 a AC-01.4, AC-06.2 e AC-06.7 |
-| T-16 | FR-02, FR-03 e FR-13; AC-01.5, AC-02.1, AC-06.5 a AC-06.7 |
-| T-17 | FR-08 e FR-10; AC-06.1, AC-06.3 e AC-06.4; NFR-07 |
-| T-18 | FR-07; AC-02.3 a AC-02.4; NFR-13 |
-| T-19 a T-20 | FR-01, FR-09 e FR-13; AC-01.1 a AC-01.4, AC-06.2 e AC-06.7; NFR-03 |
-| T-21 a T-22 | FR-02 e FR-03; AC-01.5 a AC-01.6, AC-02.1 e AC-06.5 a AC-06.6; NFR-09 |
-| T-23 | FR-05; AC-04.1 a AC-04.3; NFR-09 e NFR-13 |
-| T-24 | FR-07; AC-02.3 a AC-02.4; NFR-13 |
-| T-25 | FR-04 (condicional); AC-03.1 a AC-03.3; NFR-06 e NFR-07; Perguntas em Aberto 1 e 4 |
-| T-26 | FR-01 a FR-05, FR-07 a FR-13; AC-01 a AC-07; NFR-01 a NFR-03 |
-| T-27 a T-45 | Requisitos e critérios dos componentes/fluxos correspondentes às tarefas de implementação anteriores; NFR-01 a NFR-03 |
-| T-46 | FR-01 a FR-03, FR-09 e FR-12; AC-01, AC-02, AC-06.2 e AC-07.2 |
-| T-47 | FR-05, FR-08 e FR-10; AC-04.2, AC-06.1, AC-06.3 a AC-06.4; NFR-01 e NFR-07 |
-| T-48 | NFR-01 a NFR-03 |
-| T-49 | NFR-04 e NFR-06; Perguntas em Aberto 5 e 6 |
-| T-50 | NFR-05 e NFR-08 |
-| T-51 | Todos os FR/AC implementados, NFR-01 a NFR-13 e checklist do projeto |
+| Requisito | Tarefas de implementação | Tarefas de teste | Cobertura/observação |
+|---|---|---|---|
+| FR-01 — Buscar cidades | T-10, T-14, T-19 | T-31, T-34, T-39, T-46 | Coberto; se a PoC aprovar busca postal, incluir esse cenário em T-31. |
+| FR-02 — Consultar clima atual | T-11, T-15, T-22 | T-32, T-35, T-41, T-46 | Coberto. |
+| FR-03 — Consultar previsão | T-11, T-15, T-23 | T-32, T-35, T-42, T-46 | Coberto. |
+| FR-04 — Consultar histórico | T-13, T-18, T-26 (condicionais) | T-38, T-45, T-47 (condicionais) | Implementação condicional; falta teste unitário explícito do request e mapeamento do Archive. |
+| FR-05 — Alternar unidade | T-08, T-24 | T-29, T-43, T-47 | Coberto; alternância sem nova chamada. |
+| FR-06 — Localização do dispositivo | Nenhuma | Nenhuma | Aposentado e fora do escopo; não é lacuna. |
+| FR-07 — Gerenciar favoritos | T-12, T-17, T-25 | T-33, T-37, T-44, T-47 | Coberto. |
+| FR-08 — Atualizar dados | T-16 | T-36, T-47 | Coberto. |
+| FR-09 — Busca sem resultados | T-10, T-14, T-19, T-20 | T-31, T-34, T-39, T-46 | Coberto. |
+| FR-10 — Indisponibilidade e cota | T-11, T-12, T-16 | T-32, T-33, T-36, T-47 | Coberto. |
+| FR-11 — Analytics desativado | Nenhuma tarefa dedicada | Nenhuma tarefa dedicada | Lacuna: adicionar verificação de que os fluxos não enviam nem armazenam eventos/payloads de analytics. |
+| FR-12 — Usar sem conta | T-27 | T-46 | Coberto. |
+| FR-13 — Indicar carregamento | T-15, T-19, T-20, T-21 | T-35, T-39, T-40, T-46 | Coberto. |
+
+FR-06, US-05 e AC-05 foram aposentados; não são lacunas de implementação. As lacunas de teste de FR-01 e FR-04 são condicionais ao resultado da PoC.
 
 ## Entrega 0 — Gates e decisões
 
