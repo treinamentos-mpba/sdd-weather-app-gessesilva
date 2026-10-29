@@ -37,14 +37,19 @@ A experiência será em pt-BR no lançamento, mas a estrutura deve permitir incl
 
 ## Riscos
 
-- Pode não haver provedor dentro do teto inicial que ofereça cobertura global, clima atual, previsão e histórico diário, com termos comerciais aceitáveis.
-- A meta de disponibilidade do site não garante disponibilidade dos dados externos; cache limitado a 24 horas reduz, mas não elimina, esse impacto.
-- A cobertura de códigos postais, nomes alternativos, cidades pequenas e histórico pode variar por região e provedor.
-- A probabilidade de chuva até o fim do dia e os dados históricos podem não estar disponíveis de forma uniforme em todas as localidades.
-- Metas de sucesso de 90% por bloco podem ser difíceis de atingir globalmente e precisam ser acompanhadas por região e provedor.
-- O envio de cidade ou coordenadas a um serviço externo, mesmo com divulgação e finalidade específica, exige transparência e avaliação dos termos de privacidade do provedor.
-- A persistência local de cidade e favoritos pode desaparecer se o usuário limpar os dados do navegador ou trocar de dispositivo.
-- As metas de desempenho dependem da rede do usuário e do tempo de resposta do provedor; “condições normais de rede” deve ser operacionalizado nos testes.
+| Tipo | Risco | Probabilidade | Impacto | Mitigação |
+|---|---|---|---|---|
+| Técnico | Não encontrar um provedor com cobertura global, clima atual, previsão e histórico de sete dias dentro do orçamento inicial de R$ 100/mês. | Alta | Alto: pode atrasar o lançamento ou exigir aumento de orçamento. | Comparar provedores antes da implementação, validar cobertura e termos comerciais e obter aprovação de orçamento para alternativas pagas. |
+| Técnico | Indisponibilidade, latência ou limite de chamadas do provedor externo. | Média | Alto: consultas podem falhar ou exceder a meta de desempenho. | Usar cache de até 24 horas com indicação de horário, controlar chamadas, oferecer atualização manual e exibir erro com opção de nova tentativa. |
+| Técnico | Dados incompletos ou inconsistentes por região, especialmente histórico, códigos postais e probabilidade de chuva. | Alta | Alto: funcionalidades podem não estar disponíveis para parte das cidades globais. | Testar cobertura em regiões representativas antes de contratar; monitorar sucesso por bloco e comunicar indisponibilidades sem apresentar ausência de dados como previsão. |
+| Técnico | Dados em cache podem estar desatualizados para representar o clima atual. | Média | Alto: usuários podem tomar decisões com informação antiga. | Limitar cache a 24 horas, identificar claramente dados antigos e mostrar o horário da última atualização. |
+| Técnico | Busca ambígua ou de baixa qualidade em nomes globais, grafias alternativas e códigos postais. | Média | Médio/alto: o usuário pode consultar a cidade errada ou não encontrar sua localidade. | Exibir até cinco sugestões com cidade, região e país; testar nomes homônimos e variações de grafia; oferecer correção quando não houver resultados. |
+| Técnico | Tratamento incorreto de fusos horários pode deslocar datas da previsão ou horários de observação. | Média | Alto: informações podem ser atribuídas ao dia errado. | Usar o fuso local da cidade para agrupar a previsão e exibir o horário da observação; validar casos de cidades em diferentes fusos. |
+| Técnico | Metas de responsividade, acessibilidade e desempenho podem não ser atendidas em celulares ou redes lentas. | Média | Alto: prejudica o uso do produto e pode excluir pessoas com deficiência. | Testar desde 375 px em navegadores suportados, validar WCAG 2.2 AA e medir o tempo médio de carregamento em condições de rede documentadas. |
+| Produto | A métrica de sucesso pode ocultar falhas em previsão ou histórico se o clima atual carregar. | Média | Alto: o produto pode parecer saudável enquanto partes importantes falham. | Acompanhar indicadores separados para clima atual, previsão e histórico, além da disponibilidade mensal do site. |
+| Produto | O teto de orçamento pode conflitar com o histórico obrigatório e a meta de disponibilidade. | Alta | Alto: risco de custo não aprovado ou de atraso no MVP. | Validar preço, cobertura, limites e termos antes da contratação; solicitar aprovação antes de ultrapassar R$ 100/mês. |
+| Produto | Usuários podem recusar localização ou analytics por preocupações de privacidade. | Média | Médio: reduz conveniência e dados de medição, mas não deve impedir consultas. | Solicitar permissões apenas após ação explícita, permitir revogação, limitar retenção e manter busca manual e funcionalidades disponíveis sem analytics. |
+| Produto | O escopo pode crescer com histórico, favoritos, geolocalização e expansão internacional. | Média | Alto: pode elevar custo e atrasar o lançamento. | Tratar como MVP apenas os recursos confirmados, controlar alterações de escopo e exigir avaliação de custo e impacto antes de adicionar funcionalidades. |
 
 ## Perguntas em Aberto
 
