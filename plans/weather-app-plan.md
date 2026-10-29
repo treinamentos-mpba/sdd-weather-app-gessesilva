@@ -21,7 +21,12 @@ flowchart LR
 
 Princípios arquiteturais:
 
-- Separar UI, estado de interação e acesso a serviços externos.
+- Dependências unidirecionais: `components` → `hooks` → `services` → APIs/recursos do navegador. As camadas podem importar funções puras de `lib` e contratos de `types`; `lib` não importa UI, serviços ou recursos do navegador.
+- `components` apresentam dados/estados e emitem ações por props; não fazem chamadas de rede nem acessam armazenamento.
+- `hooks` orquestram estado e operações assíncronas; não contêm detalhes de URLs ou payloads dos provedores.
+- `services` encapsulam chamadas externas e efeitos de navegador (fetch, geolocalização e localStorage); traduzem erros externos para erros do domínio.
+- `lib` contém funções puras e determinísticas, incluindo conversão, formatação, códigos WMO, validação e mapeamento de payloads.
+- `types` contém contratos compartilhados, sem dependências de runtime.
 - Normalizar respostas externas para modelos de domínio antes de chegar aos componentes.
 - Manter estados e erros independentes por bloco meteorológico, mesmo quando clima atual e previsão vierem da mesma resposta HTTP.
 - Não gravar coordenadas precisas do dispositivo, respostas de API ou dados do usuário no servidor.
@@ -51,28 +56,30 @@ Manter a estrutura atual e adicionar módulos somente onde a separação de resp
 ```text
 src/
   components/
+    SearchBar.tsx
     CurrentWeather.tsx
     ForecastCard.tsx
     ForecastList.tsx
-    SearchBar.tsx
+    HistoryPanel.tsx           # somente se a PoC mantiver FR-04
     UnitToggle.tsx
     states/
       EmptyState.tsx
       ErrorState.tsx
       LoadingState.tsx
   hooks/
-    useWeather.ts
-  lib/
-    format.ts
-    temperature.ts
-    weatherCodes.ts
-    weatherCache.ts          # cache local versionado e TTL
+    useWeather.ts              # estado e orquestração do fluxo meteorológico
   services/
-    weatherService.ts        # cliente e normalização Open-Meteo
-    geocodingService.ts      # busca de cidades e, se necessário, geocoding reverso
-    geolocationService.ts    # wrapper da Geolocation API do navegador
+    weatherService.ts         # chamadas Forecast/Archive e erros de domínio
+    geocodingService.ts       # busca e normalização de cidades
+    geolocationService.ts     # wrapper da Geolocation API e resolução da cidade
+    browserStorageService.ts  # favoritos, preferências e cache local com TTL
+  lib/
+    format.ts                 # formatação de datas, horas e valores
+    temperature.ts            # conversão C/F e arredondamento
+    weatherCodes.ts           # descrição de códigos WMO
+    openMeteoMappers.ts       # mapeadores puros de payload para tipos de domínio
   types/
-    weather.ts               # modelos de domínio e estados de serviço
+    weather.ts                # tipos e contratos compartilhados
   styles/
     index.css
 
@@ -80,14 +87,18 @@ tests/
   unit/
     weatherService.test.ts
     geocodingService.test.ts
-    weatherCache.test.ts
+    browserStorageService.test.ts
     temperature.test.ts
-    weatherCodes.test.ts
+    openMeteoMappers.test.ts
+    useWeather.test.tsx
+    SearchBar.test.tsx
   e2e/
     weather.spec.ts
 ```
 
-Os nomes acima são responsabilidades propostas, não arquivos de implementação a criar agora. Se a PoC retirar o histórico ou busca postal, remover seus contratos, critérios e cobertura de teste antes da fase Code.
+`components` cuidam apenas da apresentação e acessibilidade; `hooks` coordenam estado/efeitos; `services` são a fronteira de I/O; `lib` fica livre de efeitos colaterais; `types` define os contratos. O cache e o acesso a `localStorage` pertencem a `browserStorageService`, não a `lib`.
+
+Os nomes acima são responsabilidades propostas, não arquivos de implementação a criar agora. Manter os testes unitários em `tests/unit/` como no repositório, com nomes que identifiquem a camada, sem criar uma hierarquia de pastas de teste desnecessária. Se a PoC retirar histórico ou busca postal, remover seus contratos, critérios e cobertura de teste antes da fase Code.
 
 ## Data Model
 
@@ -344,9 +355,10 @@ O limite de timeout, a política de retry (quantidade/intervalo) e o texto final
 ## Testing Strategy
 
 - **Gate de PoC:** antes da implementação, testar em conjunto representativo de cidades/países: busca por nome e homônimos, cobertura de campos atuais e cinco dias, histórico de sete dias, timezone, termos, limites, latência e reverse geocoding. Registrar resultados e remover postal/histórico do MVP se não atenderem ao gate.
-- **Testes unitários (Vitest):** normalização de busca; transformação dos payloads de cada endpoint; mapeamento de WMO; agregação de chuva após definição; limites de cache e descarte após 24h; persistência/expiração local de favoritas, unidade e cidade; conversão C/F e uma casa decimal; timezone/datas.
-- **Testes de serviço:** mock de `fetch`; cobrir sucesso, timeout, erro HTTP, cota, JSON/schema inválido, campos ausentes, respostas parciais e fallbacks de cache. Nunca chamar Open-Meteo real nos testes automatizados.
-- **Testes de componentes:** Testing Library com queries acessíveis; verificar debounce quando definido, mínimo de dois caracteres, lista máxima de cinco, desambiguação, estados loading/empty/error/success, conversão, limites de favoritas, localização negada, consentimento para lembrar cidade e analytics não chamado.
+- **Testes de `lib` (Vitest):** testar funções puras por entradas/saídas; normalização de busca, mapeadores dos payloads, códigos WMO, conversão C/F, arredondamento e tratamento de timezone. Sem mocks de navegador/rede.
+- **Testes de `services`:** mock de `fetch`, Geolocation API e storage; cobrir sucesso, timeout, erro HTTP, cota, JSON/schema inválido, campos ausentes, respostas parciais, TTL e fallback de cache. Nunca chamar Open-Meteo real nos testes automatizados.
+- **Testes de hooks:** verificar transições de estado e orquestração: loading/success/error por bloco, refresh, seleção de cidade, retorno da aba visível e carregamento sob demanda do histórico.
+- **Testes de componentes:** Testing Library com queries acessíveis; verificar debounce quando definido, mínimo de dois caracteres, lista máxima de cinco, desambiguação, estados loading/empty/error/success, conversão, limites de favoritas, localização negada e ausência de chamadas de analytics.
 - **E2E (Playwright):** interceptar todas as APIs com `page.route`; percorrer busca → seleção → clima/previsão, atualização manual/automática, aba de histórico quando habilitada, localização concedida/negada, cache expirado e ausência de autenticação. Cobrir viewport a partir de 375 px e desktop.
 - **Acessibilidade:** verificar teclado, foco, labels/roles e fluxos críticos; incluir checagens automatizadas e validação manual compatível com WCAG 2.2 AA.
 - **NFRs operacionais:** usar verificações sintéticas do shell para a meta de 99%; medir 3s e taxa de sucesso em ambiente controlado após definir perfil de rede, cidades de amostra e protocolo. Sem analytics de usuários.
